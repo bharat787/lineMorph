@@ -26,7 +26,7 @@ const rightSideSagX = (rightTowerX + cableRightX) / 2
 const rightSideSagY = (cableAnchorY + towerTopY) / 2 + sideSagDepth
 
 /** Slim tower width — two vertical edges centered on each tower. */
-const towerHalfWidth = 5
+const towerHalfWidth = 2
 const leftTowerOuterX = leftTowerX - towerHalfWidth
 const leftTowerInnerX = leftTowerX + towerHalfWidth
 const rightTowerOuterX = rightTowerX - towerHalfWidth
@@ -84,25 +84,22 @@ const BRIDGE_TOWER_FILLS = {
   right: towerRect(rightTowerOuterX, rightTowerInnerX),
 } as const
 
+/** Full main cable — left span, center span, and right span as one path. */
+const topCablePath = [
+  `M ${cableLeftX} ${cableAnchorY}`,
+  `Q ${leftSideSagX} ${leftSideSagY} ${leftTowerX} ${towerTopY}`,
+  `Q ${cableSagX} ${cableSagY} ${rightTowerX} ${towerTopY}`,
+  `Q ${rightSideSagX} ${rightSideSagY} ${cableRightX} ${cableAnchorY}`,
+].join(' ')
+
 /** Bridge strokes rendered and animated in TransitionScene. */
 export const BRIDGE_PATHS = {
   deck: `M ${deckLeftX} ${deckY} L ${deckRightX} ${deckY}`,
   lowerTruss: `M ${deckLeftX} ${lowerDeckY} L ${deckRightX} ${lowerDeckY}`,
   leftPillar: BRIDGE_TOWER_FILLS.left,
-  leftCable: [
-    `M ${cableLeftX} ${cableAnchorY}`,
-    `Q ${leftSideSagX} ${leftSideSagY} ${leftTowerX} ${towerTopY}`,
-  ].join(' '),
+  topCable: topCablePath,
   leftSuspender: verticalLine(leftTowerOuterX),
-  centerCable: [
-    `M ${leftTowerX} ${towerTopY}`,
-    `Q ${cableSagX} ${cableSagY} ${rightTowerX} ${towerTopY}`,
-  ].join(' '),
   centerSuspender: deckTrussPath(),
-  rightCable: [
-    `M ${rightTowerX} ${towerTopY}`,
-    `Q ${rightSideSagX} ${rightSideSagY} ${cableRightX} ${cableAnchorY}`,
-  ].join(' '),
   rightPillar: BRIDGE_TOWER_FILLS.right,
   rightSuspender: verticalLine(rightTowerInnerX),
 } as const

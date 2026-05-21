@@ -2,13 +2,13 @@ import { useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { interpolate } from 'flubber'
 import {
   BRIDGE_PATHS,
   BRIDGE_TOWER_STROKE_IDS,
   BRIDGE_VIEW,
   type BridgeStrokeId,
 } from '../scenes/bridgeGeometry'
+import { createOpenPathMorph } from '../scenes/openPathMorph'
 import {
   SKYLINE_MORPH_TARGET,
   SKYLINE_REVEAL_PATHS,
@@ -38,11 +38,9 @@ function emptyMorphRefs(): Record<BridgeStrokeId, SVGPathElement | null> {
     deck: null,
     lowerTruss: null,
     leftPillar: null,
-    leftCable: null,
+    topCable: null,
     leftSuspender: null,
-    centerCable: null,
     centerSuspender: null,
-    rightCable: null,
     rightPillar: null,
     rightSuspender: null,
   }
@@ -114,9 +112,14 @@ export function TransitionScene() {
       tl.to(fadeEls, { opacity: 0, duration: fadeDuration }, fadeStart)
 
       if (skylineEl) {
-        const mixer = interpolate(BRIDGE_PATHS[SKYLINE_MORPH_STROKE], SKYLINE_MORPH_TARGET, {
-          maxSegmentLength: MORPH_SEGMENT_LENGTH,
-        })
+        const fromPath = BRIDGE_PATHS[SKYLINE_MORPH_STROKE]
+        const toPath = SKYLINE_MORPH_TARGET
+        const mixer = createOpenPathMorph(
+          fromPath,
+          toPath,
+          MORPH_SEGMENT_LENGTH,
+          BRIDGE_VIEW.width,
+        )
         const state = { t: 0 }
 
         tl.to(
@@ -124,7 +127,9 @@ export function TransitionScene() {
           {
             t: 1,
             duration: morphDuration,
-            onUpdate: () => skylineEl.setAttribute('d', mixer(state.t)),
+            onUpdate: () => {
+              skylineEl.setAttribute('d', mixer(state.t))
+            },
           },
           morphStart,
         )

@@ -120,8 +120,18 @@ function transformPath(d: string): string {
 
 const transformedPaths = RAW_PATHS.map(transformPath)
 
-/** Full skyline outline — center bridge cable morphs into this path. */
-export const SKYLINE_MORPH_TARGET = transformedPaths.slice(0, 3).join(' ')
+function pathStartX(d: string): number {
+  const match = d.match(/^M\s*([-\d.]+)/)
+  return match ? Number(match[1]) : 0
+}
+
+/** Main skyline sections ordered west → east for open-path morph sampling. */
+const skylineMorphSections = transformedPaths
+  .slice(0, 3)
+  .sort((a, b) => pathStartX(a) - pathStartX(b))
+
+/** Full skyline outline — suspension cable morphs into this path. */
+export const SKYLINE_MORPH_TARGET = skylineMorphSections.join(' ')
 
 /** Small spire accents drawn in after the main morph completes. */
 export const SKYLINE_REVEAL_PATHS = transformedPaths.slice(3)
