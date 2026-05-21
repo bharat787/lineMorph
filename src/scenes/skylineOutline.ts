@@ -1,10 +1,10 @@
 import { BRIDGE_VIEW } from './bridgeGeometry'
 
-/** Matches transition ground line — deck and skyline share this baseline. */
-export const SKYLINE_GROUND_Y = 218
+/** Skyline baseline — sits just above the bridge deck so spires can use more height above. */
+export const SKYLINE_GROUND_Y = 238
 
 /** Headroom for stroke caps so the tallest spire isn't clipped by the viewBox. */
-const TARGET_TOP_Y = 12
+const TARGET_TOP_Y = 2
 const TARGET_HEIGHT = SKYLINE_GROUND_Y - TARGET_TOP_Y
 const TARGET_MIN_X = 0
 const TARGET_MAX_X = BRIDGE_VIEW.width
