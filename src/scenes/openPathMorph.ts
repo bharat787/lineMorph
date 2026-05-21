@@ -115,17 +115,41 @@ function smoothstep(t: number): number {
   return t * t * (3 - 2 * t)
 }
 
+/** X-aligned samples along a path (for stipple / morph). */
+export function samplePathByX(
+  d: string,
+  maxSegmentLength: number,
+  spanWidth = BRIDGE_VIEW.width,
+): [number, number][] {
+  const polylines = subpathPolylines(d)
+  const count = Math.max(3, Math.ceil(spanWidth / maxSegmentLength))
+  const halfBucket = spanWidth / count / 2
+  const points: [number, number][] = []
+
+  for (let i = 0; i < count; i++) {
+    const x = (spanWidth * i) / (count - 1)
+    const y = ridgeYAtX(polylines, x, halfBucket)
+    points.push([x, y])
+  }
+
+  return points
+}
+
+export type OpenPathMorph = {
+  path: (t: number) => string
+  points: (t: number) => [number, number][]
+}
+
 /**
  * Gravity-style morph: x stays fixed across the span, only y moves.
  * Cable at each x drops vertically onto the skyline ridge at that x.
- * Uses the same polyline representation at t=0 and t=1 (no path swap).
  */
 export function createOpenPathMorph(
   fromD: string,
   toD: string,
   maxSegmentLength: number,
   spanWidth = BRIDGE_VIEW.width,
-): (t: number) => string {
+): OpenPathMorph {
   const fromPolylines = subpathPolylines(fromD)
   const toPolylines = subpathPolylines(toD)
 
@@ -139,12 +163,16 @@ export function createOpenPathMorph(
   const fromYs = xs.map((x) => ridgeYAtX(fromPolylines, x, halfBucket))
   const toYs = xs.map((x) => ridgeYAtX(toPolylines, x, halfBucket))
 
-  return (t: number) => {
+  const pointsAt = (t: number): [number, number][] => {
     const progress = smoothstep(t)
-    const points = xs.map((x, i) => [
+    return xs.map((x, i) => [
       x,
       fromYs[i] + progress * (toYs[i] - fromYs[i]),
     ] as [number, number])
-    return openPathFromPoints(points)
+  }
+
+  return {
+    path: (t) => openPathFromPoints(pointsAt(t)),
+    points: pointsAt,
   }
 }

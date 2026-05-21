@@ -44,3 +44,21 @@ export const MORPH_TIMING = {
   detailDrawDuration: 0.22,
   detailStagger: 0.04,
 } as const
+
+/** Denser samples + smaller Bayer cells = more dots along the morph. */
+export const STIPPLE_SAMPLE_LENGTH = 2
+
+export const STIPPLE_CELL_SIZE = 3
+export const STIPPLE_DOT_RADIUS = 1.1
+
+/** Ordered-dither stipple only during the cable → skyline morph. */
+export const DITHER_TIMING = {
+  /** When morph begins: crossfade solid cable → stipple. */
+  stippleInStart: 0.32,
+  stippleInDuration: 0.04,
+  thresholdStart: 0.42,
+  thresholdEnd: 0.98,
+  /** Crossfade stipple → crisp SVG stroke at end of morph. */
+  crispStart: 0.8,
+  crispDuration: 0.14,
+} as const

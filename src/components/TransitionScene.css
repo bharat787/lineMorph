@@ -46,3 +46,12 @@
 .transition-scene__stroke--centerSuspender {
   stroke-linejoin: miter;
 }
+
+/* Solid cable at start; opacity driven by GSAP during morph. */
+.transition-scene__stroke--ditherTarget {
+  opacity: 1;
+}
+
+.transition-scene__stipple circle {
+  fill: #e05b35;
+}
