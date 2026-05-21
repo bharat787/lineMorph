@@ -1,4 +1,4 @@
-/** Shared bridge layout (must match SuspensionBridge.tsx). */
+/** Bridge layout for the scroll transition scene. */
 export const BRIDGE_VIEW = { width: 1400, height: 380 } as const
 
 const deckY = 248
@@ -12,13 +12,13 @@ const verticalTopY = towerTopY - towerCapExtension
 const verticalBottomY = deckY + towerBaseExtension
 const leftTowerX = BRIDGE_VIEW.width * 0.22
 const rightTowerX = BRIDGE_VIEW.width * 0.78
-const deckLeftX = BRIDGE_VIEW.width * 0.04
-const deckRightX = BRIDGE_VIEW.width * 0.96
+const deckLeftX = 0
+const deckRightX = BRIDGE_VIEW.width
 const cableSagY = 289
 const cableSagX = BRIDGE_VIEW.width / 2
 const cableAnchorY = deckY - 2
-const cableLeftX = BRIDGE_VIEW.width * 0.012
-const cableRightX = BRIDGE_VIEW.width * 0.988
+const cableLeftX = 0
+const cableRightX = BRIDGE_VIEW.width
 const sideSagDepth = 42
 const leftSideSagX = (cableLeftX + leftTowerX) / 2
 const leftSideSagY = (cableAnchorY + towerTopY) / 2 + sideSagDepth
@@ -79,44 +79,34 @@ function deckTrussPath(): string {
   return parts.join(' ')
 }
 
-export const BRIDGE_GROUND_Y = deckY
-
-/** Filled tower silhouettes (closed paths). */
-export const BRIDGE_TOWER_FILLS = {
+const BRIDGE_TOWER_FILLS = {
   left: towerRect(leftTowerOuterX, leftTowerInnerX),
   right: towerRect(rightTowerOuterX, rightTowerInnerX),
 } as const
 
-/** Ten bridge strokes — each maps 1:1 to a skyline morph target. */
+/** Bridge strokes rendered and animated in TransitionScene. */
 export const BRIDGE_PATHS = {
   deck: `M ${deckLeftX} ${deckY} L ${deckRightX} ${deckY}`,
   lowerTruss: `M ${deckLeftX} ${lowerDeckY} L ${deckRightX} ${lowerDeckY}`,
-  /** Slim left tower — filled rect, opens into PFA shell on morph. */
   leftPillar: BRIDGE_TOWER_FILLS.left,
   leftCable: [
     `M ${cableLeftX} ${cableAnchorY}`,
     `Q ${leftSideSagX} ${leftSideSagY} ${leftTowerX} ${towerTopY}`,
   ].join(' '),
-  /** Left tower outer edge — same line as rect’s west side. */
   leftSuspender: verticalLine(leftTowerOuterX),
   centerCable: [
     `M ${leftTowerX} ${towerTopY}`,
     `Q ${cableSagX} ${cableSagY} ${rightTowerX} ${towerTopY}`,
   ].join(' '),
-  /** Truss web between upper deck and lower chord (replaces center vertical). */
   centerSuspender: deckTrussPath(),
   rightCable: [
     `M ${rightTowerX} ${towerTopY}`,
     `Q ${rightSideSagX} ${rightSideSagY} ${cableRightX} ${cableAnchorY}`,
   ].join(' '),
-  /** Slim right tower. */
   rightPillar: BRIDGE_TOWER_FILLS.right,
-  /** Right tower east edge. */
   rightSuspender: verticalLine(rightTowerInnerX),
 } as const
 
 export type BridgeStrokeId = keyof typeof BRIDGE_PATHS
-
-export const BRIDGE_STROKE_IDS = Object.keys(BRIDGE_PATHS) as BridgeStrokeId[]
 
 export const BRIDGE_TOWER_STROKE_IDS = ['leftPillar', 'rightPillar'] as const

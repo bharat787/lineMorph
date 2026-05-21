@@ -9,21 +9,21 @@ import {
   BRIDGE_VIEW,
   type BridgeStrokeId,
 } from '../scenes/bridgeGeometry'
-import { SKYLINE_TARGETS, buildRevealPaths } from '../scenes/skylineTargets'
 import {
-  MORPH_SEGMENT_LENGTH,
+  SKYLINE_MORPH_TARGET,
+  SKYLINE_REVEAL_PATHS,
+} from '../scenes/skylineOutline'
+import {
+  BRIDGE_FADE_STROKES,
   BRIDGE_RENDER_ORDER,
-  MORPH_STROKE_ORDER,
+  MORPH_SEGMENT_LENGTH,
   MORPH_TIMING,
   SCROLL_END,
-  getMorphTargetId,
-  morphTimeFor,
+  SKYLINE_MORPH_STROKE,
 } from '../scenes/morphPlan'
 import './TransitionScene.css'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
-
-const REVEAL_PATHS = buildRevealPaths()
 
 function prepDraw(path: SVGPathElement) {
   const length = path.getTotalLength()
@@ -63,14 +63,15 @@ export function TransitionScene() {
       const towerEls = BRIDGE_TOWER_STROKE_IDS.map((id) => morphRefs.current[id]).filter(
         Boolean,
       ) as SVGPathElement[]
+      const fadeEls = BRIDGE_FADE_STROKES.map((id) => morphRefs.current[id]).filter(
+        Boolean,
+      ) as SVGPathElement[]
+      const skylineEl = morphRefs.current[SKYLINE_MORPH_STROKE]
 
       if (reducedMotion) {
         gsap.set(towerEls, { fill: 'none', stroke: '#e05b35' })
-        MORPH_STROKE_ORDER.forEach((id) => {
-          const el = morphRefs.current[id]
-          if (!el) return
-          el.setAttribute('d', SKYLINE_TARGETS[getMorphTargetId(id)])
-        })
+        gsap.set(fadeEls, { opacity: 0 })
+        skylineEl?.setAttribute('d', SKYLINE_MORPH_TARGET)
         gsap.set(revealRef.current, { opacity: 1 })
         revealRef.current?.querySelectorAll('path').forEach((p) => {
           gsap.set(p, { attr: { 'stroke-dashoffset': 0 } })
@@ -78,27 +79,25 @@ export function TransitionScene() {
         return
       }
 
-      const revealPaths = gsap.utils.toArray<SVGPathElement>(
+      const detailPaths = gsap.utils.toArray<SVGPathElement>(
         '.transition-reveal__path',
         revealRef.current,
       )
-      revealPaths.forEach(prepDraw)
+      detailPaths.forEach(prepDraw)
       gsap.set(revealRef.current, { opacity: 0 })
 
       const tl = gsap.timeline({ defaults: { ease: 'none' } })
       const {
-        stagger,
-        morphDuration,
+        fadeStart,
+        fadeDuration,
         morphStart,
-        revealFadeStart,
-        revealFadeDuration,
-        revealDrawStart,
-        revealDrawDuration,
-        revealStagger,
+        morphDuration,
+        detailFadeStart,
+        detailFadeDuration,
+        detailDrawStart,
+        detailDrawDuration,
+        detailStagger,
       } = MORPH_TIMING
-
-      const leftTower = morphRefs.current.leftPillar
-      const rightTower = morphRefs.current.rightPillar
 
       const towerBridgeStyle = { fill: '#e05b35', stroke: 'none' }
       const towerSkylineStyle = { fill: 'none', stroke: '#e05b35' }
@@ -106,28 +105,16 @@ export function TransitionScene() {
       gsap.set(towerEls, towerBridgeStyle)
       tl.set(towerEls, towerBridgeStyle, 0)
 
-      if (leftTower) {
-        tl.to(
-          leftTower,
-          { ...towerSkylineStyle, duration: 0.08 },
-          morphTimeFor('leftPillar'),
-        )
-      }
-      if (rightTower) {
-        tl.to(
-          rightTower,
-          { ...towerSkylineStyle, duration: 0.08 },
-          morphTimeFor('rightPillar'),
-        )
-      }
+      tl.to(
+        towerEls,
+        { ...towerSkylineStyle, duration: 0.08 },
+        fadeStart,
+      )
 
-      MORPH_STROKE_ORDER.forEach((strokeId, i) => {
-        const el = morphRefs.current[strokeId]
-        if (!el) return
+      tl.to(fadeEls, { opacity: 0, duration: fadeDuration }, fadeStart)
 
-        const from = BRIDGE_PATHS[strokeId]
-        const to = SKYLINE_TARGETS[getMorphTargetId(strokeId)]
-        const mixer = interpolate(from, to, {
+      if (skylineEl) {
+        const mixer = interpolate(BRIDGE_PATHS[SKYLINE_MORPH_STROKE], SKYLINE_MORPH_TARGET, {
           maxSegmentLength: MORPH_SEGMENT_LENGTH,
         })
         const state = { t: 0 }
@@ -137,26 +124,26 @@ export function TransitionScene() {
           {
             t: 1,
             duration: morphDuration,
-            onUpdate: () => el.setAttribute('d', mixer(state.t)),
+            onUpdate: () => skylineEl.setAttribute('d', mixer(state.t)),
           },
-          morphStart + i * stagger,
+          morphStart,
         )
-      })
+      }
 
       tl.to(
         revealRef.current,
-        { opacity: 1, duration: revealFadeDuration },
-        revealFadeStart,
+        { opacity: 1, duration: detailFadeDuration },
+        detailFadeStart,
       )
 
       tl.to(
-        revealPaths,
+        detailPaths,
         {
           attr: { 'stroke-dashoffset': 0 },
-          duration: revealDrawDuration,
-          stagger: revealStagger,
+          duration: detailDrawDuration,
+          stagger: detailStagger,
         },
-        revealDrawStart,
+        detailDrawStart,
       )
 
       ScrollTrigger.create({
@@ -178,7 +165,7 @@ export function TransitionScene() {
         <svg
           className="transition-scene__svg"
           viewBox={`0 0 ${BRIDGE_VIEW.width} ${BRIDGE_VIEW.height}`}
-          preserveAspectRatio="xMidYMid meet"
+          preserveAspectRatio="xMidYMax meet"
           role="img"
           aria-label="Suspension bridge transforming into the San Francisco skyline"
         >
@@ -195,7 +182,7 @@ export function TransitionScene() {
             ))}
           </g>
           <g ref={revealRef} className="transition-scene__reveal" opacity={0}>
-            {REVEAL_PATHS.map((d, i) => (
+            {SKYLINE_REVEAL_PATHS.map((d, i) => (
               <path
                 key={i}
                 className="transition-scene__stroke transition-reveal__path"
