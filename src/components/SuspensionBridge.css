@@ -1,0 +1,25 @@
+.suspension-bridge {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.bridge-stroke {
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.bridge-stroke--cable {
+  stroke-width: 2;
+}
+
+.bridge-stroke--pillar {
+  stroke-width: 3;
+}
+
+.bridge-stroke--deck {
+  stroke-width: 3.5;
+}
