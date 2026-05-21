@@ -1,0 +1,49 @@
+.transition-scene {
+  position: relative;
+  width: 100%;
+}
+
+.transition-scene__pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 100vh;
+  padding: 0 1.25rem;
+  box-sizing: border-box;
+}
+
+.transition-scene__svg {
+  display: block;
+  width: 100%;
+  max-width: 1400px;
+  height: auto;
+}
+
+.transition-scene__stroke {
+  stroke: #e05b35;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Bridge towers: fill between the two vertical edges. */
+.transition-scene__stroke--leftPillar,
+.transition-scene__stroke--rightPillar {
+  fill: #e05b35;
+  stroke: none;
+}
+
+/* Tower edge strokes — butt caps so tips don’t extend past the filled rect. */
+.transition-scene__stroke--leftSuspender,
+.transition-scene__stroke--rightSuspender {
+  stroke: #e05b35;
+  fill: none;
+  stroke-linecap: butt;
+}
+
+.transition-scene__stroke--centerSuspender {
+  stroke-linejoin: miter;
+}

@@ -1,0 +1,17 @@
+.city-skyline {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.skyline-stroke {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.skyline-stroke--buildings {
+  stroke: #e05b35;
+  stroke-width: 2;
+}

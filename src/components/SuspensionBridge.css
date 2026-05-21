@@ -9,6 +9,7 @@
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
+  fill: none;
   vector-effect: non-scaling-stroke;
 }
 
@@ -16,10 +17,25 @@
   stroke-width: 2;
 }
 
-.bridge-stroke--pillar {
-  stroke-width: 3;
+.bridge-stroke--deck,
+.bridge-stroke--lowerTruss {
+  stroke-width: 3.5;
 }
 
-.bridge-stroke--deck {
-  stroke-width: 3.5;
+/* Thick towers: fill between outer suspender line and inner pillar line. */
+.bridge-stroke--tower-fill {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* Tower edge strokes — butt caps align with filled rect top/bottom. */
+.bridge-stroke--tower-edge {
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: butt;
+}
+
+.bridge-stroke--centerSuspender {
+  stroke-width: 2;
+  stroke-linejoin: miter;
 }
