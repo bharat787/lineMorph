@@ -4,6 +4,9 @@ export const BRIDGE_VIEW = { width: 1400, height: 380 } as const
 const deckY = 248
 /** Second deck line — full span, parallel just below the main deck. */
 const lowerDeckY = deckY + 8
+/** Single continuous deck arch — center highest, ends lower (Earth-like camber). */
+const deckCrown = 15
+const deckEndDrop = 2
 const towerTopY = 72
 const towerCapExtension = 22
 const towerBaseExtension = 100
@@ -16,7 +19,7 @@ const deckLeftX = 0
 const deckRightX = BRIDGE_VIEW.width
 const cableSagY = 289
 const cableSagX = BRIDGE_VIEW.width / 2
-const cableAnchorY = deckY - 2
+const cableAnchorY = deckY + deckEndDrop
 const cableLeftX = 0
 const cableRightX = BRIDGE_VIEW.width
 const sideSagDepth = 42
@@ -53,29 +56,55 @@ function verticalLine(x: number): string {
   return `M ${x} ${verticalTopY} L ${x} ${verticalBottomY}`
 }
 
-/** Warren truss between deck chords (upper + lower horizontal lines). */
+const deckHalfSpan = (deckRightX - deckLeftX) / 2
+const deckCenterX = deckLeftX + deckHalfSpan
+
+/** Y on the shared parabolic deck arch at x (same profile for upper + lower chords). */
+function deckElevationAt(x: number, baseY: number): number {
+  const clampedX = Math.max(deckLeftX, Math.min(deckRightX, x))
+  const t = (clampedX - deckCenterX) / deckHalfSpan
+  return baseY - deckCrown + (deckEndDrop + deckCrown) * t * t
+}
+
+function deckCurvePath(baseY: number): string {
+  const samples = 48
+  const parts: string[] = []
+  for (let i = 0; i <= samples; i++) {
+    const x = deckLeftX + (i / samples) * (deckRightX - deckLeftX)
+    const y = deckElevationAt(x, baseY)
+    parts.push(i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`)
+  }
+  return parts.join(' ')
+}
+
+/** Warren truss between curved deck chords (upper + lower). */
 function deckTrussPath(): string {
-  const topY = deckY
-  const bottomY = lowerDeckY
   const span = trussRightX - trussLeftX
   const remainder = span % trussPanelWidth
   const phaseStart =
     trussLeftX + Math.max(0, remainder / 2 - trussPhaseShiftLeft)
 
-  const parts = [`M ${trussLeftX} ${topY}`, `L ${trussLeftX} ${bottomY}`]
+  const topAt = (x: number) => deckElevationAt(x, deckY)
+  const bottomAt = (x: number) => deckElevationAt(x, lowerDeckY)
+
+  const parts = [
+    `M ${trussLeftX} ${topAt(trussLeftX)}`,
+    `L ${trussLeftX} ${bottomAt(trussLeftX)}`,
+  ]
   let x = phaseStart
   if (x > trussLeftX) {
-    parts.push(`L ${x} ${topY}`)
+    parts.push(`L ${x} ${topAt(x)}`)
   }
-  let onTop = false
+  // At the left edge we're on the bottom chord — first step goes up to top.
+  let onTop = x <= trussLeftX
 
   while (x < trussRightX) {
     x = Math.min(x + trussPanelWidth, trussRightX)
-    parts.push(`L ${x} ${onTop ? topY : bottomY}`)
+    parts.push(`L ${x} ${onTop ? topAt(x) : bottomAt(x)}`)
     onTop = !onTop
   }
 
-  parts.push(`L ${trussRightX} ${topY}`)
+  parts.push(`L ${trussRightX} ${topAt(trussRightX)}`)
   return parts.join(' ')
 }
 
@@ -94,8 +123,8 @@ const topCablePath = [
 
 /** Bridge strokes rendered and animated in TransitionScene. */
 export const BRIDGE_PATHS = {
-  deck: `M ${deckLeftX} ${deckY} L ${deckRightX} ${deckY}`,
-  lowerTruss: `M ${deckLeftX} ${lowerDeckY} L ${deckRightX} ${lowerDeckY}`,
+  deck: deckCurvePath(deckY),
+  lowerTruss: deckCurvePath(lowerDeckY),
   leftPillar: BRIDGE_TOWER_FILLS.left,
   topCable: topCablePath,
   leftSuspender: verticalLine(leftTowerOuterX),
@@ -115,15 +144,17 @@ export type StreetLight = {
 }
 
 const streetLightSpacing = 72
-const lampBaseY = deckY + 2
-const lampHeadY = deckY - 14
 
 /** Lamp posts along the deck — visible in dark mode at full bridge. */
 export const STREET_LIGHTS: StreetLight[] = Array.from(
   { length: Math.floor(BRIDGE_VIEW.width / streetLightSpacing) - 1 },
-  (_, i) => ({
-    x: streetLightSpacing * (i + 1),
-    baseY: lampBaseY,
-    headY: lampHeadY,
-  }),
+  (_, i) => {
+    const x = streetLightSpacing * (i + 1)
+    const deckAtX = deckElevationAt(x, deckY)
+    return {
+      x,
+      baseY: deckAtX + 2,
+      headY: deckAtX - 14,
+    }
+  },
 )
