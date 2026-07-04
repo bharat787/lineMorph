@@ -11,6 +11,8 @@
   min-height: 100vh;
   padding: 0;
   box-sizing: border-box;
+  background-color: var(--scene-bg);
+  transition: background-color 0.5s ease;
 }
 
 .transition-scene__svg {
@@ -19,26 +21,32 @@
   height: auto;
 }
 
+.transition-scene__bg {
+  fill: var(--scene-bg);
+  transition: fill 0.5s ease;
+}
+
 .transition-scene__stroke {
-  stroke: #e05b35;
+  stroke: var(--scene-ink);
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
   fill: none;
   vector-effect: non-scaling-stroke;
+  transition: stroke 0.5s ease, fill 0.5s ease;
 }
 
 /* Bridge towers: fill between the two vertical edges. */
 .transition-scene__stroke--leftPillar,
 .transition-scene__stroke--rightPillar {
-  fill: #e05b35;
+  fill: var(--scene-ink);
   stroke: none;
 }
 
 /* Tower edge strokes — butt caps so tips don’t extend past the filled rect. */
 .transition-scene__stroke--leftSuspender,
 .transition-scene__stroke--rightSuspender {
-  stroke: #e05b35;
+  stroke: var(--scene-ink);
   fill: none;
   stroke-linecap: butt;
 }
@@ -53,5 +61,64 @@
 }
 
 .transition-scene__stipple circle {
-  fill: #e05b35;
+  fill: var(--scene-ink);
+}
+
+.transition-scene__streetlights,
+.transition-scene__windows {
+  pointer-events: none;
+}
+
+.transition-scene__streetlight-post {
+  stroke: var(--scene-light-warm);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
+
+.transition-scene__streetlight-bulb {
+  fill: var(--scene-light-warm);
+  filter: drop-shadow(0 0 4px var(--scene-light-glow));
+}
+
+.transition-scene__streetlight-pool {
+  fill: var(--scene-light-warm);
+  opacity: 0.35;
+  filter: blur(1px);
+}
+
+.transition-scene__window {
+  fill: var(--scene-light-warm);
+  opacity: 0.85;
+  filter: drop-shadow(0 0 2px var(--scene-light-glow));
+}
+
+.transition-scene__toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--toggle-border);
+  border-radius: 999px;
+  background: var(--toggle-bg);
+  color: var(--scene-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition:
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    color 0.35s ease;
+}
+
+.transition-scene__toggle:hover {
+  background: var(--toggle-border);
+}
+
+.transition-scene__toggle:focus-visible {
+  outline: 2px solid var(--scene-ink);
+  outline-offset: 2px;
 }

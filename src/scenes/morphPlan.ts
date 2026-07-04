@@ -31,6 +31,12 @@ export const MORPH_SEGMENT_LENGTH = 4
 
 export const SCROLL_END = '+=340%'
 
+/** Scroll progress bands where the scene is fully bridge or fully skyline. */
+export const STABLE_PROGRESS = {
+  bridgeMax: 0.05,
+  skylineMin: 0.94,
+} as const
+
 /** Timeline segment lengths (sum ≈ 1). */
 export const MORPH_TIMING = {
   fadeStart: 0.08,

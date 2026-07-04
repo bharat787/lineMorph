@@ -1,4 +1,5 @@
 import { BRIDGE_VIEW } from './bridgeGeometry'
+import { samplePathByX } from './openPathMorph'
 
 /** Skyline baseline — sits just above the bridge deck so spires can use more height above. */
 export const SKYLINE_GROUND_Y = 238
@@ -135,3 +136,60 @@ export const SKYLINE_MORPH_TARGET = skylineMorphSections.join(' ')
 
 /** Small spire accents drawn in after the main morph completes. */
 export const SKYLINE_REVEAL_PATHS = transformedPaths.slice(3)
+
+export type WindowLight = {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+function seededRandom(seed: number): number {
+  const value = Math.sin(seed * 12.9898 + seed * 78.233) * 43758.5453
+  return value - Math.floor(value)
+}
+
+function roofYAtX(
+  samples: [number, number][],
+  x: number,
+): number {
+  let best = samples[0]
+  for (const sample of samples) {
+    if (Math.abs(sample[0] - x) < Math.abs(best[0] - x)) best = sample
+  }
+  return best[1]
+}
+
+function generateWindowLights(): WindowLight[] {
+  const ridgeSamples = samplePathByX(SKYLINE_MORPH_TARGET, 4, BRIDGE_VIEW.width)
+  const lights: WindowLight[] = []
+  const rowStep = 15
+  const colStep = 22
+
+  for (let x = 36; x < BRIDGE_VIEW.width - 36; x += colStep) {
+    const roofY = roofYAtX(ridgeSamples, x)
+    const buildingHeight = SKYLINE_GROUND_Y - roofY
+    if (buildingHeight < 28) continue
+
+    const rows = Math.floor((buildingHeight - 16) / rowStep)
+    for (let row = 0; row < rows; row++) {
+      const seed = x * 17 + row * 31
+      if (seededRandom(seed) > 0.52) continue
+
+      const y = roofY + 10 + row * rowStep
+      if (y > SKYLINE_GROUND_Y - 10) continue
+
+      lights.push({
+        x: x + (seededRandom(seed + 1) - 0.5) * 6,
+        y,
+        w: 3.2,
+        h: 4.2,
+      })
+    }
+  }
+
+  return lights
+}
+
+/** Warm window glows — visible in dark mode once the skyline transition completes. */
+export const WINDOW_LIGHTS = generateWindowLights()

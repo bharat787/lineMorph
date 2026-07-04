@@ -107,3 +107,23 @@ export const BRIDGE_PATHS = {
 export type BridgeStrokeId = keyof typeof BRIDGE_PATHS
 
 export const BRIDGE_TOWER_STROKE_IDS = ['leftPillar', 'rightPillar'] as const
+
+export type StreetLight = {
+  x: number
+  baseY: number
+  headY: number
+}
+
+const streetLightSpacing = 72
+const lampBaseY = deckY + 2
+const lampHeadY = deckY - 14
+
+/** Lamp posts along the deck — visible in dark mode at full bridge. */
+export const STREET_LIGHTS: StreetLight[] = Array.from(
+  { length: Math.floor(BRIDGE_VIEW.width / streetLightSpacing) - 1 },
+  (_, i) => ({
+    x: streetLightSpacing * (i + 1),
+    baseY: lampBaseY,
+    headY: lampHeadY,
+  }),
+)

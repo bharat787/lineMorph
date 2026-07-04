@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -6,6 +6,7 @@ import {
   BRIDGE_PATHS,
   BRIDGE_TOWER_STROKE_IDS,
   BRIDGE_VIEW,
+  STREET_LIGHTS,
   type BridgeStrokeId,
 } from '../scenes/bridgeGeometry'
 import { clearStipple, renderStipple } from '../dither/stipplePath'
@@ -13,6 +14,7 @@ import { createOpenPathMorph, samplePathByX } from '../scenes/openPathMorph'
 import {
   SKYLINE_MORPH_TARGET,
   SKYLINE_REVEAL_PATHS,
+  WINDOW_LIGHTS,
 } from '../scenes/skylineOutline'
 import {
   BRIDGE_FADE_STROKES,
@@ -25,7 +27,9 @@ import {
   MORPH_TIMING,
   SCROLL_END,
   SKYLINE_MORPH_STROKE,
+  STABLE_PROGRESS,
 } from '../scenes/morphPlan'
+import { useTheme, type Theme } from '../hooks/useTheme'
 import './TransitionScene.css'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
@@ -51,12 +55,42 @@ function emptyMorphRefs(): Record<BridgeStrokeId, SVGPathElement | null> {
   }
 }
 
+function sceneInk(): string {
+  return (
+    getComputedStyle(document.documentElement).getPropertyValue('--scene-ink').trim() ||
+    '#e05b35'
+  )
+}
+
+function lightTargets(progress: number, theme: Theme) {
+  if (theme === 'light') {
+    return { street: 0, window: 0 }
+  }
+
+  const bridgeStable = progress <= STABLE_PROGRESS.bridgeMax
+  const skylineStable = progress >= STABLE_PROGRESS.skylineMin
+
+  return {
+    street: bridgeStable ? 1 : 0,
+    window: skylineStable ? 1 : 0,
+  }
+}
+
 export function TransitionScene() {
+  const { theme, toggleTheme } = useTheme()
   const sectionRef = useRef<HTMLElement>(null)
   const pinRef = useRef<HTMLDivElement>(null)
   const morphRefs = useRef(emptyMorphRefs())
   const stippleRef = useRef<SVGGElement>(null)
   const revealRef = useRef<SVGGElement>(null)
+  const streetLightsRef = useRef<SVGGElement>(null)
+  const windowLightsRef = useRef<SVGGElement>(null)
+  const scrollProgressRef = useRef(0)
+  const themeRef = useRef(theme)
+
+  useEffect(() => {
+    themeRef.current = theme
+  }, [theme])
 
   useGSAP(
     () => {
@@ -73,9 +107,24 @@ export function TransitionScene() {
       const skylineEl = morphRefs.current[SKYLINE_MORPH_STROKE]
       const stippleEl = stippleRef.current
       const cablePath = BRIDGE_PATHS[SKYLINE_MORPH_STROKE]
+      const streetLightsEl = streetLightsRef.current
+      const windowLightsEl = windowLightsRef.current
+      const ink = sceneInk()
+
+      const applyLights = (progress: number, animate: boolean) => {
+        const { street, window } = lightTargets(progress, themeRef.current)
+        const duration = animate ? 0.5 : 0.12
+
+        if (streetLightsEl) {
+          gsap.to(streetLightsEl, { opacity: street, duration, overwrite: true })
+        }
+        if (windowLightsEl) {
+          gsap.to(windowLightsEl, { opacity: window, duration, overwrite: true })
+        }
+      }
 
       if (reducedMotion) {
-        gsap.set(towerEls, { fill: 'none', stroke: '#e05b35' })
+        gsap.set(towerEls, { fill: 'none', stroke: ink })
         gsap.set(fadeEls, { opacity: 0 })
         gsap.set(stippleEl, { opacity: 0 })
         gsap.set(skylineEl, { opacity: 1 })
@@ -84,6 +133,8 @@ export function TransitionScene() {
         revealRef.current?.querySelectorAll('path').forEach((p) => {
           gsap.set(p, { attr: { 'stroke-dashoffset': 0 } })
         })
+        scrollProgressRef.current = 1
+        applyLights(1, false)
         return
       }
 
@@ -93,6 +144,8 @@ export function TransitionScene() {
       )
       detailPaths.forEach(prepDraw)
       gsap.set(revealRef.current, { opacity: 0 })
+      gsap.set(streetLightsEl, { opacity: 0 })
+      gsap.set(windowLightsEl, { opacity: 0 })
 
       const tl = gsap.timeline({ defaults: { ease: 'none' } })
       const {
@@ -107,8 +160,8 @@ export function TransitionScene() {
         detailStagger,
       } = MORPH_TIMING
 
-      const towerBridgeStyle = { fill: '#e05b35', stroke: 'none' }
-      const towerSkylineStyle = { fill: 'none', stroke: '#e05b35' }
+      const towerBridgeStyle = { fill: ink, stroke: 'none' }
+      const towerSkylineStyle = { fill: 'none', stroke: ink }
 
       gsap.set(towerEls, towerBridgeStyle)
       tl.set(towerEls, towerBridgeStyle, 0)
@@ -234,13 +287,40 @@ export function TransitionScene() {
         scrub: 1,
         animation: tl,
         anticipatePin: 1,
+        onUpdate: (self) => {
+          scrollProgressRef.current = self.progress
+          applyLights(self.progress, false)
+        },
       })
+
+      applyLights(0, false)
     },
     { scope: sectionRef },
   )
 
+  useEffect(() => {
+    const progress = scrollProgressRef.current
+    const { street, window } = lightTargets(progress, theme)
+    const duration = 0.5
+
+    if (streetLightsRef.current) {
+      gsap.to(streetLightsRef.current, { opacity: street, duration, overwrite: true })
+    }
+    if (windowLightsRef.current) {
+      gsap.to(windowLightsRef.current, { opacity: window, duration, overwrite: true })
+    }
+  }, [theme])
+
   return (
     <section ref={sectionRef} className="transition-scene">
+      <button
+        type="button"
+        className="transition-scene__toggle"
+        onClick={toggleTheme}
+        aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+      >
+        {theme === 'light' ? 'Dark mode' : 'Light mode'}
+      </button>
       <div ref={pinRef} className="transition-scene__pin">
         <svg
           className="transition-scene__svg"
@@ -249,6 +329,44 @@ export function TransitionScene() {
           role="img"
           aria-label="Suspension bridge transforming into the San Francisco skyline"
         >
+          <rect
+            className="transition-scene__bg"
+            x={0}
+            y={0}
+            width={BRIDGE_VIEW.width}
+            height={BRIDGE_VIEW.height}
+          />
+          <g
+            ref={streetLightsRef}
+            className="transition-scene__streetlights"
+            opacity={0}
+            aria-hidden="true"
+          >
+            {STREET_LIGHTS.map((lamp, i) => (
+              <g key={i}>
+                <line
+                  className="transition-scene__streetlight-post"
+                  x1={lamp.x}
+                  y1={lamp.baseY}
+                  x2={lamp.x}
+                  y2={lamp.headY}
+                />
+                <circle
+                  className="transition-scene__streetlight-bulb"
+                  cx={lamp.x}
+                  cy={lamp.headY}
+                  r={3}
+                />
+                <ellipse
+                  className="transition-scene__streetlight-pool"
+                  cx={lamp.x}
+                  cy={lamp.baseY + 1}
+                  rx={9}
+                  ry={2.5}
+                />
+              </g>
+            ))}
+          </g>
           <g className="transition-scene__morph">
             {BRIDGE_RENDER_ORDER.map((id) => (
               <path
@@ -277,6 +395,24 @@ export function TransitionScene() {
                 className="transition-scene__stroke transition-reveal__path"
                 d={d}
                 fill="none"
+              />
+            ))}
+          </g>
+          <g
+            ref={windowLightsRef}
+            className="transition-scene__windows"
+            opacity={0}
+            aria-hidden="true"
+          >
+            {WINDOW_LIGHTS.map((win, i) => (
+              <rect
+                key={i}
+                className="transition-scene__window"
+                x={win.x - win.w / 2}
+                y={win.y}
+                width={win.w}
+                height={win.h}
+                rx={0.6}
               />
             ))}
           </g>
