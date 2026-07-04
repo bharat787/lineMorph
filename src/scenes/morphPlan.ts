@@ -3,14 +3,19 @@ import type { BridgeStrokeId } from './bridgeGeometry'
 /** Full top suspension cable morphs into the skyline outline. */
 export const SKYLINE_MORPH_STROKE: BridgeStrokeId = 'topCable'
 
-/** All other bridge strokes fade out before the morph. */
+/** Deck + truss fade out before the morph. */
 export const BRIDGE_FADE_STROKES: BridgeStrokeId[] = [
   'deck',
   'lowerTruss',
-  'leftPillar',
-  'leftSuspender',
   'centerSuspender',
+]
+
+/** Towers and their hanger lines — same fade band as the pillar style morph. */
+export const BRIDGE_TOWER_FADE_STROKES: BridgeStrokeId[] = [
+  'leftPillar',
   'rightPillar',
+  'deckSuspenders',
+  'leftSuspender',
   'rightSuspender',
 ]
 
@@ -19,6 +24,7 @@ export const BRIDGE_RENDER_ORDER: BridgeStrokeId[] = [
   'deck',
   'lowerTruss',
   'centerSuspender',
+  'deckSuspenders',
   'topCable',
   'leftPillar',
   'rightPillar',

@@ -55,6 +55,11 @@
   stroke-linejoin: miter;
 }
 
+.transition-scene__stroke--deckSuspenders {
+  stroke-width: 1;
+  stroke-linecap: butt;
+}
+
 /* Solid cable at start; opacity driven by GSAP during morph. */
 .transition-scene__stroke--ditherTarget {
   opacity: 1;

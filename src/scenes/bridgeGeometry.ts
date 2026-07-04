@@ -17,7 +17,7 @@ const leftTowerX = BRIDGE_VIEW.width * 0.22
 const rightTowerX = BRIDGE_VIEW.width * 0.78
 const deckLeftX = 0
 const deckRightX = BRIDGE_VIEW.width
-const cableSagY = 289
+const cableSagY = 320
 const cableSagX = BRIDGE_VIEW.width / 2
 const cableAnchorY = deckY + deckEndDrop
 const cableLeftX = 0
@@ -64,6 +64,84 @@ function deckElevationAt(x: number, baseY: number): number {
   const clampedX = Math.max(deckLeftX, Math.min(deckRightX, x))
   const t = (clampedX - deckCenterX) / deckHalfSpan
   return baseY - deckCrown + (deckEndDrop + deckCrown) * t * t
+}
+
+type Point2 = { x: number; y: number }
+
+function quadraticYAtX(p0: Point2, p1: Point2, p2: Point2, x: number): number | null {
+  const a = p2.x - 2 * p1.x + p0.x
+  const b = 2 * (p1.x - p0.x)
+  const c = p0.x - x
+
+  const roots: number[] = []
+  if (Math.abs(a) < 1e-9) {
+    if (Math.abs(b) < 1e-9) return null
+    roots.push(-c / b)
+  } else {
+    const disc = b * b - 4 * a * c
+    if (disc < 0) return null
+    const s = Math.sqrt(disc)
+    roots.push((-b - s) / (2 * a), (-b + s) / (2 * a))
+  }
+
+  for (const t of roots) {
+    if (t >= -1e-4 && t <= 1 + 1e-4) {
+      const clamped = Math.max(0, Math.min(1, t))
+      const u = 1 - clamped
+      return u * u * p0.y + 2 * u * clamped * p1.y + clamped * clamped * p2.y
+    }
+  }
+  return null
+}
+
+/** Y on the main suspension cable at x (matches topCablePath). */
+function cableElevationAt(x: number): number {
+  const clampedX = Math.max(cableLeftX, Math.min(cableRightX, x))
+  const segments: [Point2, Point2, Point2][] = [
+    [
+      { x: cableLeftX, y: cableAnchorY },
+      { x: leftSideSagX, y: leftSideSagY },
+      { x: leftTowerX, y: towerTopY },
+    ],
+    [
+      { x: leftTowerX, y: towerTopY },
+      { x: cableSagX, y: cableSagY },
+      { x: rightTowerX, y: towerTopY },
+    ],
+    [
+      { x: rightTowerX, y: towerTopY },
+      { x: rightSideSagX, y: rightSideSagY },
+      { x: cableRightX, y: cableAnchorY },
+    ],
+  ]
+
+  for (const [p0, p1, p2] of segments) {
+    const minX = Math.min(p0.x, p2.x)
+    const maxX = Math.max(p0.x, p2.x)
+    if (clampedX < minX - 1e-4 || clampedX > maxX + 1e-4) continue
+    const y = quadraticYAtX(p0, p1, p2, clampedX)
+    if (y !== null) return y
+  }
+
+  return towerTopY
+}
+
+/** Vertical hanger lines from the main cable down to the upper deck chord. */
+const suspenderSpacing = 36
+
+function deckSuspendersPath(): string {
+  const span = deckRightX - deckLeftX
+  const count = Math.max(1, Math.round(span / suspenderSpacing))
+  const parts: string[] = []
+
+  for (let i = 0; i <= count; i++) {
+    const x = deckLeftX + (i / count) * span
+    const cableY = cableElevationAt(x)
+    const deckTopY = deckElevationAt(x, deckY)
+    parts.push(`M ${x} ${cableY} L ${x} ${deckTopY}`)
+  }
+
+  return parts.join(' ')
 }
 
 function deckCurvePath(baseY: number): string {
@@ -126,6 +204,7 @@ export const BRIDGE_PATHS = {
   deck: deckCurvePath(deckY),
   lowerTruss: deckCurvePath(lowerDeckY),
   leftPillar: BRIDGE_TOWER_FILLS.left,
+  deckSuspenders: deckSuspendersPath(),
   topCable: topCablePath,
   leftSuspender: verticalLine(leftTowerOuterX),
   centerSuspender: deckTrussPath(),

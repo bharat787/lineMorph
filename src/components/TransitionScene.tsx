@@ -19,6 +19,7 @@ import {
 import {
   BRIDGE_FADE_STROKES,
   BRIDGE_RENDER_ORDER,
+  BRIDGE_TOWER_FADE_STROKES,
   DITHER_TIMING,
   MORPH_SEGMENT_LENGTH,
   STIPPLE_CELL_SIZE,
@@ -47,6 +48,7 @@ function emptyMorphRefs(): Record<BridgeStrokeId, SVGPathElement | null> {
     deck: null,
     lowerTruss: null,
     leftPillar: null,
+    deckSuspenders: null,
     topCable: null,
     leftSuspender: null,
     centerSuspender: null,
@@ -101,6 +103,9 @@ export function TransitionScene() {
       const towerEls = BRIDGE_TOWER_STROKE_IDS.map((id) => morphRefs.current[id]).filter(
         Boolean,
       ) as SVGPathElement[]
+      const towerFadeEls = BRIDGE_TOWER_FADE_STROKES.map((id) => morphRefs.current[id]).filter(
+        Boolean,
+      ) as SVGPathElement[]
       const fadeEls = BRIDGE_FADE_STROKES.map((id) => morphRefs.current[id]).filter(
         Boolean,
       ) as SVGPathElement[]
@@ -125,6 +130,7 @@ export function TransitionScene() {
 
       if (reducedMotion) {
         gsap.set(towerEls, { fill: 'none', stroke: ink })
+        gsap.set(towerFadeEls, { opacity: 0 })
         gsap.set(fadeEls, { opacity: 0 })
         gsap.set(stippleEl, { opacity: 0 })
         gsap.set(skylineEl, { opacity: 1 })
@@ -172,6 +178,7 @@ export function TransitionScene() {
         fadeStart,
       )
 
+      tl.to(towerFadeEls, { opacity: 0, duration: fadeDuration }, fadeStart)
       tl.to(fadeEls, { opacity: 0, duration: fadeDuration }, fadeStart)
 
       if (skylineEl && stippleEl) {
