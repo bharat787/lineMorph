@@ -1,23 +1,27 @@
 /** Bridge layout for the scroll transition scene. */
 export const BRIDGE_VIEW = { width: 1400, height: 380 } as const
 
-const deckY = 248
+/** Vertical shift applied so tower bases meet the viewBox bottom (was 348). */
+export const SCENE_Y_OFFSET = BRIDGE_VIEW.height - 348
+
+const towerBaseExtension = 100
+/** Tower bases sit flush with the viewBox bottom (viewport floor with YMax alignment). */
+const verticalBottomY = BRIDGE_VIEW.height
+const deckY = verticalBottomY - towerBaseExtension
 /** Second deck line — full span, parallel just below the main deck. */
 const lowerDeckY = deckY + 8
 /** Single continuous deck arch — center highest, ends lower (Earth-like camber). */
 const deckCrown = 15
 const deckEndDrop = 2
-const towerTopY = 72
+const towerTopY = 104
 const towerCapExtension = 22
-const towerBaseExtension = 100
 /** Shared bounds for tower verticals. */
 const verticalTopY = towerTopY - towerCapExtension
-const verticalBottomY = deckY + towerBaseExtension
 const leftTowerX = BRIDGE_VIEW.width * 0.22
 const rightTowerX = BRIDGE_VIEW.width * 0.78
 const deckLeftX = 0
 const deckRightX = BRIDGE_VIEW.width
-const cableSagY = 320
+const cableSagY = 352
 const cableSagX = BRIDGE_VIEW.width / 2
 const cableAnchorY = deckY + deckEndDrop
 const cableLeftX = 0

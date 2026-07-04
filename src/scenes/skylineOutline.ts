@@ -1,12 +1,17 @@
 import { BRIDGE_VIEW } from './bridgeGeometry'
 import { samplePathByX } from './openPathMorph'
 
-/** Skyline baseline — sits just above the bridge deck so spires can use more height above. */
-export const SKYLINE_GROUND_Y = 238
+/** Original skyline ground — keeps building proportions fixed when translating. */
+const BASE_SKYLINE_GROUND_Y = 238
 
-/** Headroom for stroke caps so the tallest spire isn't clipped by the viewBox. */
-const TARGET_TOP_Y = 2
-const TARGET_HEIGHT = SKYLINE_GROUND_Y - TARGET_TOP_Y
+/** Small gap above the viewBox bottom — skyline nearly sits on the viewport floor. */
+const SKYLINE_BOTTOM_INSET = 14
+
+/** Skyline baseline after translating down (proportions unchanged). */
+export const SKYLINE_GROUND_Y = BRIDGE_VIEW.height - SKYLINE_BOTTOM_INSET
+
+/** Fixed vertical scale — original proportions (ground at 238, top at 2). */
+const TARGET_HEIGHT = BASE_SKYLINE_GROUND_Y - 2
 const TARGET_MIN_X = 0
 const TARGET_MAX_X = BRIDGE_VIEW.width
 
