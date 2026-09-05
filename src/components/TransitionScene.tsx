@@ -4,7 +4,6 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import {
   BRIDGE_PATHS,
-  BRIDGE_TOWER_STROKE_IDS,
   BRIDGE_VIEW,
   type BridgeStrokeId,
 } from '../scenes/bridgeGeometry'
@@ -39,16 +38,9 @@ function prepDraw(path: SVGPathElement) {
 }
 
 function emptyMorphRefs(): Record<BridgeStrokeId, SVGPathElement | null> {
-  return {
-    deck: null,
-    lowerTruss: null,
-    leftPillar: null,
-    topCable: null,
-    leftSuspender: null,
-    centerSuspender: null,
-    rightPillar: null,
-    rightSuspender: null,
-  }
+  return Object.fromEntries(
+    BRIDGE_RENDER_ORDER.map(id => [id, null]),
+  ) as Record<BridgeStrokeId, SVGPathElement | null>
 }
 
 export function TransitionScene() {
@@ -64,18 +56,16 @@ export function TransitionScene() {
         '(prefers-reduced-motion: reduce)',
       ).matches
 
-      const towerEls = BRIDGE_TOWER_STROKE_IDS.map((id) => morphRefs.current[id]).filter(
-        Boolean,
-      ) as SVGPathElement[]
       const fadeEls = BRIDGE_FADE_STROKES.map((id) => morphRefs.current[id]).filter(
         Boolean,
       ) as SVGPathElement[]
       const skylineEl = morphRefs.current[SKYLINE_MORPH_STROKE]
       const stippleEl = stippleRef.current
       const cablePath = BRIDGE_PATHS[SKYLINE_MORPH_STROKE]
+      // GSAP mutates d directly; restore the current geometry on every setup.
+      skylineEl?.setAttribute('d', cablePath)
 
       if (reducedMotion) {
-        gsap.set(towerEls, { fill: 'none', stroke: '#e05b35' })
         gsap.set(fadeEls, { opacity: 0 })
         gsap.set(stippleEl, { opacity: 0 })
         gsap.set(skylineEl, { opacity: 1 })
@@ -106,18 +96,6 @@ export function TransitionScene() {
         detailDrawDuration,
         detailStagger,
       } = MORPH_TIMING
-
-      const towerBridgeStyle = { fill: '#e05b35', stroke: 'none' }
-      const towerSkylineStyle = { fill: 'none', stroke: '#e05b35' }
-
-      gsap.set(towerEls, towerBridgeStyle)
-      tl.set(towerEls, towerBridgeStyle, 0)
-
-      tl.to(
-        towerEls,
-        { ...towerSkylineStyle, duration: 0.08 },
-        fadeStart,
-      )
 
       tl.to(fadeEls, { opacity: 0, duration: fadeDuration }, fadeStart)
 
@@ -157,6 +135,7 @@ export function TransitionScene() {
             })
             skylineEl.setAttribute('d', morph.path(morphState.t))
           } else {
+            skylineEl.setAttribute('d', cablePath)
             clearStipple(stippleEl)
           }
 
@@ -236,7 +215,7 @@ export function TransitionScene() {
         anticipatePin: 1,
       })
     },
-    { scope: sectionRef },
+    { scope: sectionRef, dependencies: [BRIDGE_PATHS], revertOnUpdate: true },
   )
 
   return (
@@ -247,7 +226,7 @@ export function TransitionScene() {
           viewBox={`0 0 ${BRIDGE_VIEW.width} ${BRIDGE_VIEW.height}`}
           preserveAspectRatio="xMidYMax meet"
           role="img"
-          aria-label="Suspension bridge transforming into the San Francisco skyline"
+          aria-label="Golden Gate Bridge viewed at an angle transforming into the San Francisco skyline"
         >
           <g className="transition-scene__morph">
             {BRIDGE_RENDER_ORDER.map((id) => (

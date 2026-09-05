@@ -1,3 +1,17 @@
+# lineMorph — V2
+
+Run `npm run dev` and open the local Vite URL. Scroll down to dissolve the bridge details, morph its continuous foreground suspension cable through stippled dots, and reveal the San Francisco skyline. Scroll back up to restore the bridge.
+
+## Angled bridge study
+
+`src/scenes/bridgeGeometry.ts` generates original SVG geometry with a shared receding projection: paired cables, vertical hangers, portal towers with crossbeams and foundations, and a tapered roadway/truss. The foreground cable remains a single open, left-to-right path so the existing x-aligned skyline morph continues to work. Other strokes are registered automatically for fading in `morphPlan.ts`.
+
+Perspective reference: [Easy Drawing Guides — Golden Gate Bridge](https://easydrawingguides.com/how-to-draw-the-golden-gate-bridge/), especially the converging roadway, paired tower legs, and suspension details. This is a procedural interpretation; no source artwork is embedded or traced.
+
+Validation: `npm run build` and `npm run lint`.
+
+---
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

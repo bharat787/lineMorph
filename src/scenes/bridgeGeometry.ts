@@ -1,109 +1,109 @@
-/** Bridge layout for the scroll transition scene. */
+/** Oblique bridge study: all structure shares one receding projection. */
 export const BRIDGE_VIEW = { width: 1400, height: 380 } as const
 
-const deckY = 248
-/** Second deck line — full span, parallel just below the main deck. */
-const lowerDeckY = deckY + 8
-const towerTopY = 72
-const towerCapExtension = 22
-const towerBaseExtension = 100
-/** Shared bounds for tower verticals. */
-const verticalTopY = towerTopY - towerCapExtension
-const verticalBottomY = deckY + towerBaseExtension
-const leftTowerX = BRIDGE_VIEW.width * 0.22
-const rightTowerX = BRIDGE_VIEW.width * 0.78
-const deckLeftX = 0
-const deckRightX = BRIDGE_VIEW.width
-const cableSagY = 289
-const cableSagX = BRIDGE_VIEW.width / 2
-const cableAnchorY = deckY - 2
-const cableLeftX = 0
-const cableRightX = BRIDGE_VIEW.width
-const sideSagDepth = 42
-const leftSideSagX = (cableLeftX + leftTowerX) / 2
-const leftSideSagY = (cableAnchorY + towerTopY) / 2 + sideSagDepth
-const rightSideSagX = (rightTowerX + cableRightX) / 2
-const rightSideSagY = (cableAnchorY + towerTopY) / 2 + sideSagDepth
+type Point = [number, number]
+const nearTower = 340
+const farTower = 1010
+const towerHeight = (x: number) => 292 + 58 * Math.max(0, Math.min(1, (x - nearTower) / (farTower - nearTower)))
+const scale = (x: number) => 1 - 0.68 * x / BRIDGE_VIEW.width
 
-/** Slim tower width — two vertical edges centered on each tower. */
-const towerHalfWidth = 2
-const leftTowerOuterX = leftTowerX - towerHalfWidth
-const leftTowerInnerX = leftTowerX + towerHalfWidth
-const rightTowerOuterX = rightTowerX - towerHalfWidth
-const rightTowerInnerX = rightTowerX + towerHalfWidth
-
-/** Deck truss — full span between upper and lower deck chords. */
-const trussLeftX = deckLeftX
-const trussRightX = deckRightX
-const trussPanelWidth = 42
-/** Nudge zigzag phase left so end panels look balanced (px). */
-const trussPhaseShiftLeft = 10
-
-function towerRect(outerX: number, innerX: number): string {
-  return [
-    `M ${outerX} ${verticalTopY}`,
-    `L ${innerX} ${verticalTopY}`,
-    `L ${innerX} ${verticalBottomY}`,
-    `L ${outerX} ${verticalBottomY}`,
-    'Z',
-  ].join(' ')
+/** x follows the span; z crosses the roadway; h rises above the deck. */
+function project(x: number, h = 0, z = 0): Point {
+  const s = scale(x)
+  // The foreground side sits to the right, with a lower foot and taller leg.
+  const foreground = 1 - z
+  return [x + foreground * 58 * s, 318 - x * 0.068 - h * s * (1 + foreground * 0.14) + foreground * 10 * s]
 }
 
-function verticalLine(x: number): string {
-  return `M ${x} ${verticalTopY} L ${x} ${verticalBottomY}`
+/** Extend each projected span exactly to the left viewport edge. */
+function spanStart(z = 0): number {
+  const offset = (1 - z) * 58
+  return -offset / (1 - offset * 0.68 / BRIDGE_VIEW.width)
 }
 
-/** Warren truss between deck chords (upper + lower horizontal lines). */
-function deckTrussPath(): string {
-  const topY = deckY
-  const bottomY = lowerDeckY
-  const span = trussRightX - trussLeftX
-  const remainder = span % trussPanelWidth
-  const phaseStart =
-    trussLeftX + Math.max(0, remainder / 2 - trussPhaseShiftLeft)
+function line(points: Point[], close = false): string {
+  return points.map(([x, y], i) => `${i ? 'L' : 'M'} ${x.toFixed(2)} ${y.toFixed(2)}`).join(' ') + (close ? ' Z' : '')
+}
 
-  const parts = [`M ${trussLeftX} ${topY}`, `L ${trussLeftX} ${bottomY}`]
-  let x = phaseStart
-  if (x > trussLeftX) {
-    parts.push(`L ${x} ${topY}`)
+function beam(x: number, h: number, width: number, height: number): string {
+  return line([project(x, h, 0), project(x, h, width), project(x, h + height, width), project(x, h + height, 0)], true)
+}
+
+function tower(x: number): string {
+  const parts: string[] = []
+  const height = towerHeight(x)
+  // Two portal legs, tapered crown, and three open crossbeam bays.
+  for (const z of [1, 0]) {
+    parts.push(line([
+      project(x - 7, -67, z), project(x - 7, height - 9, z),
+      project(x - 4, height - 9, z), project(x - 4, height, z), project(x, height, z),
+      project(x + 4, height, z), project(x + 4, height - 9, z),
+      project(x + 7, height - 9, z), project(x + 7, -67, z),
+    ], true))
+    parts.push(line([project(x + 1, -67, z), project(x + 1, height - 9, z)]))
+
   }
-  let onTop = false
-
-  while (x < trussRightX) {
-    x = Math.min(x + trussPanelWidth, trussRightX)
-    parts.push(`L ${x} ${onTop ? topY : bottomY}`)
-    onTop = !onTop
-  }
-
-  parts.push(`L ${trussRightX} ${topY}`)
+  for (const h of [65, 139, 211, 276]) parts.push(beam(x, h * height / 292, 1, 9))
   return parts.join(' ')
 }
 
-const BRIDGE_TOWER_FILLS = {
-  left: towerRect(leftTowerOuterX, leftTowerInnerX),
-  right: towerRect(rightTowerOuterX, rightTowerInnerX),
-} as const
+/** Parabolic suspension spans, continuous at the tower saddles. */
+function cableHeight(x: number): number {
+  if (x < nearTower) {
+    const t = Math.max(0, x / nearTower)
+    return 5 + (towerHeight(nearTower) - 5) * t * t
+  }
+  if (x > farTower) {
+    const t = (1400 - x) / (1400 - farTower)
+    return 5 + (towerHeight(farTower) - 5) * t * t
+  }
+  const t = (x - nearTower) / (farTower - nearTower)
+  return towerHeight(x) - 4 * 215 * t * (1 - t)
+}
 
-/** Full main cable — left span, center span, and right span as one path. */
-const topCablePath = [
-  `M ${cableLeftX} ${cableAnchorY}`,
-  `Q ${leftSideSagX} ${leftSideSagY} ${leftTowerX} ${towerTopY}`,
-  `Q ${cableSagX} ${cableSagY} ${rightTowerX} ${towerTopY}`,
-  `Q ${rightSideSagX} ${rightSideSagY} ${cableRightX} ${cableAnchorY}`,
-].join(' ')
+/** Shared attachment stations make every hanger endpoint a cable vertex. */
+const hangerStations = Array.from({ length: 39 }, (_, i) => {
+  const t = (i + 1) / 40
+  return 1400 * 1.9 * t / (1 + 0.9 * t)
+}).filter(x => Math.abs(x - nearTower) >= 12 && Math.abs(x - farTower) >= 12)
 
-/** Bridge strokes rendered and animated in TransitionScene. */
+function cable(z: number): string {
+  const xs = [...new Set([
+    spanStart(z), 0, nearTower, farTower, 1400,
+    ...hangerStations,
+    ...Array.from({ length: 281 }, (_, i) => i * 5),
+  ])].sort((a, b) => a - b)
+  return line(xs.map(x => project(x, cableHeight(x), z)))
+}
+
+function hangers(z: number): string {
+  return hangerStations.map(x =>
+    line([project(x, 0, z), project(x, cableHeight(x), z)]),
+  ).join(' ')
+}
+
+function truss(): string {
+  const points: Point[] = [project(spanStart(), -3)]
+  for (let i = 0; i <= 100; i++) {
+    const t = i / 100
+    const x = 1400 * 1.9 * t / (1 + 0.9 * t)
+    points.push(project(x, i % 2 ? -15 : -3))
+  }
+  return line(points)
+}
+
 export const BRIDGE_PATHS = {
-  deck: `M ${deckLeftX} ${deckY} L ${deckRightX} ${deckY}`,
-  lowerTruss: `M ${deckLeftX} ${lowerDeckY} L ${deckRightX} ${lowerDeckY}`,
-  leftPillar: BRIDGE_TOWER_FILLS.left,
-  topCable: topCablePath,
-  leftSuspender: verticalLine(leftTowerOuterX),
-  centerSuspender: deckTrussPath(),
-  rightPillar: BRIDGE_TOWER_FILLS.right,
-  rightSuspender: verticalLine(rightTowerInnerX),
+  backCable: cable(1),
+  backHangers: hangers(1),
+  backDeck: line([project(spanStart(1), 0, 1), project(1400, 0, 1)]),
+  roadway: line([project(spanStart(0.48), 0, 0.48), project(1400, 0, 0.48)]),
+  deck: line([project(spanStart()), project(1400)]),
+  lowerTruss: line([project(spanStart(), -3), project(1400, -3)]) + ' ' + line([project(spanStart(), -15), project(1400, -15)]),
+  truss: truss(),
+  hangers: hangers(0),
+  farTower: tower(farTower),
+  nearTower: tower(nearTower),
+  topCable: cable(0),
 } as const
 
 export type BridgeStrokeId = keyof typeof BRIDGE_PATHS
-
-export const BRIDGE_TOWER_STROKE_IDS = ['leftPillar', 'rightPillar'] as const

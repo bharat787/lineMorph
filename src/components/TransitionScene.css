@@ -28,23 +28,21 @@
   vector-effect: non-scaling-stroke;
 }
 
-/* Bridge towers: fill between the two vertical edges. */
-.transition-scene__stroke--leftPillar,
-.transition-scene__stroke--rightPillar {
-  fill: #e05b35;
-  stroke: none;
+.transition-scene__stroke--backCable,
+.transition-scene__stroke--backHangers,
+.transition-scene__stroke--backDeck,
+.transition-scene__stroke--roadway {
+  stroke-width: 1;
 }
 
-/* Tower edge strokes — butt caps so tips don’t extend past the filled rect. */
-.transition-scene__stroke--leftSuspender,
-.transition-scene__stroke--rightSuspender {
-  stroke: #e05b35;
-  fill: none;
-  stroke-linecap: butt;
+.transition-scene__stroke--hangers,
+.transition-scene__stroke--truss {
+  stroke-width: 1.1;
 }
 
-.transition-scene__stroke--centerSuspender {
-  stroke-linejoin: miter;
+.transition-scene__stroke--nearTower,
+.transition-scene__stroke--farTower {
+  stroke-width: 1.4;
 }
 
 /* Solid cable at start; opacity driven by GSAP during morph. */

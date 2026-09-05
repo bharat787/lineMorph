@@ -1,30 +1,14 @@
-import type { BridgeStrokeId } from './bridgeGeometry'
+import { BRIDGE_PATHS, type BridgeStrokeId } from './bridgeGeometry'
 
 /** Full top suspension cable morphs into the skyline outline. */
 export const SKYLINE_MORPH_STROKE: BridgeStrokeId = 'topCable'
 
 /** All other bridge strokes fade out before the morph. */
-export const BRIDGE_FADE_STROKES: BridgeStrokeId[] = [
-  'deck',
-  'lowerTruss',
-  'leftPillar',
-  'leftSuspender',
-  'centerSuspender',
-  'rightPillar',
-  'rightSuspender',
-]
+export const BRIDGE_FADE_STROKES = (Object.keys(BRIDGE_PATHS) as BridgeStrokeId[])
+  .filter(id => id !== SKYLINE_MORPH_STROKE)
 
-/** SVG paint order (truss between deck lines, cable on top). */
-export const BRIDGE_RENDER_ORDER: BridgeStrokeId[] = [
-  'deck',
-  'lowerTruss',
-  'centerSuspender',
-  'topCable',
-  'leftPillar',
-  'rightPillar',
-  'leftSuspender',
-  'rightSuspender',
-]
+/** Far structure first, foreground towers and continuous cable last. */
+export const BRIDGE_RENDER_ORDER = Object.keys(BRIDGE_PATHS) as BridgeStrokeId[]
 
 /** Finer steps keep the morphed skyline ridge close to the traced outline. */
 export const MORPH_SEGMENT_LENGTH = 4
