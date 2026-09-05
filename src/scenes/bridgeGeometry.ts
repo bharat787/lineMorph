@@ -7,7 +7,7 @@ const farTower = 1010
 const towerHeight = (x: number) => 292 + 58 * Math.max(0, Math.min(1, (x - nearTower) / (farTower - nearTower)))
 const scale = (x: number) => 1 - 0.68 * x / BRIDGE_VIEW.width
 
-/** x follows the span; z crosses the roadway; h rises above the deck. */
+/** x follows the span; z crosses the roadway; h rises above the deck baseline. */
 function project(x: number, h = 0, z = 0): Point {
   const s = scale(x)
   // The foreground side sits to the right, with a lower foot and taller leg.
@@ -76,29 +76,53 @@ function cable(z: number): string {
   return line(xs.map(x => project(x, cableHeight(x), z)))
 }
 
+/** One broad arc across both approaches and the main span.
+ * Compensate for depth so the distant approach retains visible curvature.
+ */
+function deckHeight(x: number): number {
+  const start = spanStart()
+  const t = Math.max(0, Math.min(1, (x - start) / (BRIDGE_VIEW.width - start)))
+  return 18 * 4 * t * (1 - t) / scale(x)
+}
+
+const trussStations = Array.from({ length: 101 }, (_, i) => {
+  const t = i / 100
+  return 1400 * 1.9 * t / (1 + 0.9 * t)
+})
+
+function deckPoint(x: number, offset = 0, z = 0): Point {
+  return project(x, deckHeight(x) + offset, z)
+}
+
+function deckPath(offset = 0, z = 0): string {
+  const xs = [...new Set([
+    spanStart(z), ...trussStations, ...hangerStations,
+    ...Array.from({ length: 281 }, (_, i) => i * 5),
+  ])].sort((a, b) => a - b)
+  return line(xs.map(x => deckPoint(x, offset, z)))
+}
+
 function hangers(z: number): string {
   return hangerStations.map(x =>
-    line([project(x, 0, z), project(x, cableHeight(x), z)]),
+    line([deckPoint(x, 0, z), project(x, cableHeight(x), z)]),
   ).join(' ')
 }
 
 function truss(): string {
-  const points: Point[] = [project(spanStart(), -3)]
-  for (let i = 0; i <= 100; i++) {
-    const t = i / 100
-    const x = 1400 * 1.9 * t / (1 + 0.9 * t)
-    points.push(project(x, i % 2 ? -15 : -3))
-  }
+  const points: Point[] = [deckPoint(spanStart(), -3)]
+  trussStations.forEach((x, i) => {
+    points.push(deckPoint(x, i % 2 ? -15 : -3))
+  })
   return line(points)
 }
 
 export const BRIDGE_PATHS = {
   backCable: cable(1),
   backHangers: hangers(1),
-  backDeck: line([project(spanStart(1), 0, 1), project(1400, 0, 1)]),
-  roadway: line([project(spanStart(0.48), 0, 0.48), project(1400, 0, 0.48)]),
-  deck: line([project(spanStart()), project(1400)]),
-  lowerTruss: line([project(spanStart(), -3), project(1400, -3)]) + ' ' + line([project(spanStart(), -15), project(1400, -15)]),
+  backDeck: deckPath(0, 1),
+  roadway: deckPath(0, 0.48),
+  deck: deckPath(),
+  lowerTruss: deckPath(-3) + ' ' + deckPath(-15),
   truss: truss(),
   hangers: hangers(0),
   farTower: tower(farTower),
