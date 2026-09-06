@@ -24,9 +24,9 @@ export const MORPH_TIMING = {
   morphDuration: 0.52,
   detailFadeStart: 0.86,
   detailFadeDuration: 0.16,
+  /** All landmark details draw together over the same scroll interval. */
   detailDrawStart: 0.88,
   detailDrawDuration: 0.22,
-  detailStagger: 0.04,
 } as const
 
 /** Denser samples + smaller Bayer cells = more dots along the morph. */

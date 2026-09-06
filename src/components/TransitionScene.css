@@ -53,3 +53,8 @@
 .transition-scene__stipple circle {
   fill: #e05b35;
 }
+
+/* Architectural accents stay lighter than the continuous silhouette. */
+.transition-reveal__path {
+  stroke-width: 1.1;
+}

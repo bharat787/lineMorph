@@ -1,4 +1,5 @@
 import { BRIDGE_VIEW } from './bridgeGeometry'
+import { FERRY_OUTLINE, PALACE_OUTLINE, FERRY_CLOCK, FERRY_DETAILS, PALACE_DETAILS, TRANSAMERICA_DETAILS, TRANSAMERICA_RIGHT_OUTLINE, TRANSAMERICA_LEFT_OUTLINE, SALESFORCE_DETAILS } from './skylineLandmarks'
 
 /** Skyline baseline — sits just above the bridge deck so spires can use more height above. */
 export const SKYLINE_GROUND_Y = 238
@@ -118,7 +119,36 @@ function transformPath(d: string): string {
   return out.join(' ')
 }
 
-const transformedPaths = RAW_PATHS.map(transformPath)
+// Replace complete descending contour sections, retaining neighboring landmarks.
+function replaceLandmark(d: string, start: string, end: string, outline: string): string {
+  const from = d.indexOf(start)
+  const to = d.indexOf(end, from)
+  if (from < 0 || to < 0) throw new Error('Skyline landmark anchors are missing')
+  return d.slice(0, from) + ' ' + outline + d.slice(to)
+}
+
+let landmarkProfile: string = RAW_PATHS[0]
+landmarkProfile = replaceLandmark(landmarkProfile, ' C873.965759', ' C483.005554', FERRY_OUTLINE)
+landmarkProfile = replaceLandmark(landmarkProfile, ' C1212.958618', ' C1021.498413', PALACE_OUTLINE)
+// The original pyramid crosses two source paths; rebuild both sides around x=361.
+const pyramidRightStart = landmarkProfile.indexOf(' C418.336945')
+const pyramidLeftEnd = RAW_PATHS[1].indexOf(' C298.344757')
+if (pyramidRightStart < 0 || pyramidLeftEnd < 0) throw new Error('Pyramid anchors are missing')
+landmarkProfile = landmarkProfile.slice(0, pyramidRightStart) + ' ' + TRANSAMERICA_RIGHT_OUTLINE
+const pyramidLeftProfile = TRANSAMERICA_LEFT_OUTLINE + RAW_PATHS[1].slice(pyramidLeftEnd)
+const transformedPaths = [landmarkProfile, pyramidLeftProfile, ...RAW_PATHS.slice(2)].map(transformPath)
+
+function clockDetails(): string[] {
+  const x = tx(FERRY_CLOCK.x)
+  const y = ty(FERRY_CLOCK.y)
+  const r = FERRY_CLOCK.radius
+  const circle = (radius: number) => `M${x - radius} ${y} A${radius} ${radius} 0 1 0 ${x + radius} ${y} A${radius} ${radius} 0 1 0 ${x - radius} ${y}`
+  const ticks = Array.from({ length: 12 }, (_, i) => {
+    const a = i * Math.PI / 6
+    return `M${x + Math.sin(a) * (r - 2)} ${y + Math.cos(a) * (r - 2)} L${x + Math.sin(a) * (r - 3.5)} ${y + Math.cos(a) * (r - 3.5)}`
+  }).join(' ')
+  return [circle(r), ticks + ` M${x - 4} ${y - 4} L${x} ${y} L${x + 5} ${y - 6}`]
+}
 
 function pathStartX(d: string): number {
   const match = d.match(/^M\s*([-\d.]+)/)
@@ -133,5 +163,13 @@ const skylineMorphSections = transformedPaths
 /** Full skyline outline — suspension cable morphs into this path. */
 export const SKYLINE_MORPH_TARGET = skylineMorphSections.join(' ')
 
-/** Small spire accents drawn in after the main morph completes. */
-export const SKYLINE_REVEAL_PATHS = transformedPaths.slice(3)
+/** Landmark interiors and spire accents draw together after the main morph. */
+export const SKYLINE_REVEAL_PATHS = [
+  ...transformedPaths.slice(3),
+  // Each landmark uses the same draw start and duration.
+  transformPath(FERRY_DETAILS.join(' ')),
+  ...clockDetails(),
+  transformPath(PALACE_DETAILS.join(' ')),
+  transformPath(TRANSAMERICA_DETAILS.join(' ')),
+  transformPath(SALESFORCE_DETAILS.join(' ')),
+]

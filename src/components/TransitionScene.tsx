@@ -94,7 +94,6 @@ export function TransitionScene() {
         detailFadeDuration,
         detailDrawStart,
         detailDrawDuration,
-        detailStagger,
       } = MORPH_TIMING
 
       tl.to(fadeEls, { opacity: 0, duration: fadeDuration }, fadeStart)
@@ -200,7 +199,6 @@ export function TransitionScene() {
         {
           attr: { 'stroke-dashoffset': 0 },
           duration: detailDrawDuration,
-          stagger: detailStagger,
         },
         detailDrawStart,
       )
@@ -215,7 +213,7 @@ export function TransitionScene() {
         anticipatePin: 1,
       })
     },
-    { scope: sectionRef, dependencies: [BRIDGE_PATHS], revertOnUpdate: true },
+    { scope: sectionRef, dependencies: [BRIDGE_PATHS, SKYLINE_MORPH_TARGET, SKYLINE_REVEAL_PATHS], revertOnUpdate: true },
   )
 
   return (
