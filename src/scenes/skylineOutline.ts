@@ -5,7 +5,7 @@ import {
   COIT_OUTLINE, COIT_DETAILS, SALESFORCE_OUTLINE, SALESFORCE_DETAILS,
 } from './skylineLandmarks'
 
-export const SKYLINE_GROUND_Y = 238
+export const SKYLINE_GROUND_Y = 274
 // Retain the established landmark proportions from the original source tracing.
 const SCALE_X = 1400 / (1745.15918 - 31.499998)
 const SCALE_Y = 236 / (691.5 - 179.569)
@@ -45,7 +45,7 @@ const landmarks: Landmark[] = [
   },
 ]
 
-// Equal clear space between silhouettes and at both viewport edges.
+// Keep the landmark spacing; fill the intervening spaces with modest city blocks.
 const totalWidth = landmarks.reduce((sum, item) => sum + (item.right - item.left) * SCALE_X, 0)
 const gap = (BRIDGE_VIEW.width - totalWidth) / (landmarks.length + 1)
 let cursor = gap
@@ -87,17 +87,57 @@ function clockDetails(item: PlacedLandmark): string[] {
   return [circle, ticks + ` M${x - 4} ${y - 4} L${x} ${y} L${x + 5} ${y - 6}`]
 }
 
-/** One continuous outline, tracing right-to-left through each landmark and gap. */
+// Fixed variations feel irregular without changing during scroll or resize.
+const blockHeights = [
+  [32, 61, 43], [48, 83, 36], [39, 69, 47],
+  [54, 34, 66], [42, 88, 58], [57, 36, 24],
+]
+const cityBlocks = blockHeights.flatMap((heights, gapIndex) => {
+  const left = gapIndex === 0 ? 0 : SKYLINE_LAYOUT[gapIndex - 1].placedLeft + SKYLINE_LAYOUT[gapIndex - 1].width
+  const right = gapIndex === SKYLINE_LAYOUT.length ? BRIDGE_VIEW.width : SKYLINE_LAYOUT[gapIndex].placedLeft
+  const start = left + 8
+  const available = right - left - 16
+  const weights = gapIndex % 2 === 0 ? [0.34, 0.39, 0.27] : [0.29, 0.33, 0.38]
+  let x = start
+  return heights.map((height, index) => {
+    const width = available * weights[index]
+    const building = { left: x, right: x + width, top: SKYLINE_GROUND_Y - height, stepped: (gapIndex + index) % 3 === 1 }
+    x += width
+    return building
+  })
+})
+
+function blockOutline(block: typeof cityBlocks[number]): string {
+  const { left, right, top, stepped } = block
+  const roof = stepped
+    ? `L${right} ${top + 8} L${right - 5} ${top + 8} L${right - 5} ${top} L${left + 5} ${top} L${left + 5} ${top + 8} L${left} ${top + 8}`
+    : `L${right} ${top} L${left} ${top}`
+  return `L${right} ${SKYLINE_GROUND_Y} ${roof} L${left} ${SKYLINE_GROUND_Y}`
+}
+
+/** One continuous outline through the landmarks and simpler neighboring blocks. */
 export const SKYLINE_MORPH_TARGET = [
   `M${BRIDGE_VIEW.width} ${SKYLINE_GROUND_Y}`,
-  ...[...SKYLINE_LAYOUT].reverse().map(item =>
-    transformPath(item.outline, item).replace(/^M/, 'L'),
-  ),
+  ...[
+    ...SKYLINE_LAYOUT.map(item => ({ left: item.placedLeft, path: transformPath(item.outline, item).replace(/^M/, 'L') })),
+    ...cityBlocks.map(block => ({ left: block.left, path: blockOutline(block) })),
+  ].sort((a, b) => b.left - a.left).map(item => item.path),
   `L0 ${SKYLINE_GROUND_Y}`,
 ].join(' ')
 
+// Sparse cornices and short window slits keep the landmarks visually dominant.
+const CITY_BLOCK_DETAILS = cityBlocks.map(({ left, right, top }, index) => {
+  const paths = [`M${left + 4} ${top + 13} L${right - 4} ${top + 13}`]
+  if (index % 2 === 0) {
+    for (const x of [left + (right - left) / 3, left + (right - left) * 2 / 3]) {
+      paths.push(`M${x} ${top + 20} L${x} ${Math.min(top + 28, SKYLINE_GROUND_Y - 5)}`)
+    }
+  }
+  return paths.join(' ')
+})
+
 /** Each landmark's interior shares its outline's placement and reveal timing. */
-export const SKYLINE_REVEAL_PATHS = SKYLINE_LAYOUT.flatMap(item => [
+export const SKYLINE_REVEAL_PATHS = [...SKYLINE_LAYOUT.flatMap(item => [
   transformPath(item.details.join(' '), item),
   ...(item.id === 'ferry' ? clockDetails(item) : []),
-])
+]), ...CITY_BLOCK_DETAILS]
