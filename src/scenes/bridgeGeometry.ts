@@ -1,243 +1,133 @@
-/** Bridge layout for the scroll transition scene. */
+/** Oblique bridge study: all structure shares one receding projection. */
 export const BRIDGE_VIEW = { width: 1400, height: 380 } as const
 
-/** Vertical shift applied so tower bases meet the viewBox bottom (was 348). */
-export const SCENE_Y_OFFSET = BRIDGE_VIEW.height - 348
+type Point = [number, number]
+const nearTower = 340
+const farTower = 1010
+const towerHeight = (x: number) => 292 + 58 * Math.max(0, Math.min(1, (x - nearTower) / (farTower - nearTower)))
+const scale = (x: number) => 1 - 0.68 * x / BRIDGE_VIEW.width
 
-const towerBaseExtension = 100
-/** Tower bases sit flush with the viewBox bottom (viewport floor with YMax alignment). */
-const verticalBottomY = BRIDGE_VIEW.height
-const deckY = verticalBottomY - towerBaseExtension
-/** Second deck line — full span, parallel just below the main deck. */
-const lowerDeckY = deckY + 8
-/** Single continuous deck arch — center highest, ends lower (Earth-like camber). */
-const deckCrown = 15
-const deckEndDrop = 2
-const towerTopY = 104
-const towerCapExtension = 22
-/** Shared bounds for tower verticals. */
-const verticalTopY = towerTopY - towerCapExtension
-const leftTowerX = BRIDGE_VIEW.width * 0.22
-const rightTowerX = BRIDGE_VIEW.width * 0.78
-const deckLeftX = 0
-const deckRightX = BRIDGE_VIEW.width
-const cableSagY = 352
-const cableSagX = BRIDGE_VIEW.width / 2
-const cableAnchorY = deckY + deckEndDrop
-const cableLeftX = 0
-const cableRightX = BRIDGE_VIEW.width
-const sideSagDepth = 42
-const leftSideSagX = (cableLeftX + leftTowerX) / 2
-const leftSideSagY = (cableAnchorY + towerTopY) / 2 + sideSagDepth
-const rightSideSagX = (rightTowerX + cableRightX) / 2
-const rightSideSagY = (cableAnchorY + towerTopY) / 2 + sideSagDepth
-
-/** Slim tower width — two vertical edges centered on each tower. */
-const towerHalfWidth = 2
-const leftTowerOuterX = leftTowerX - towerHalfWidth
-const leftTowerInnerX = leftTowerX + towerHalfWidth
-const rightTowerOuterX = rightTowerX - towerHalfWidth
-const rightTowerInnerX = rightTowerX + towerHalfWidth
-
-/** Deck truss — full span between upper and lower deck chords. */
-const trussLeftX = deckLeftX
-const trussRightX = deckRightX
-const trussPanelWidth = 42
-/** Nudge zigzag phase left so end panels look balanced (px). */
-const trussPhaseShiftLeft = 10
-
-function towerRect(outerX: number, innerX: number): string {
-  return [
-    `M ${outerX} ${verticalTopY}`,
-    `L ${innerX} ${verticalTopY}`,
-    `L ${innerX} ${verticalBottomY}`,
-    `L ${outerX} ${verticalBottomY}`,
-    'Z',
-  ].join(' ')
+/** x follows the span; z crosses the roadway; h rises above the deck baseline. */
+function project(x: number, h = 0, z = 0): Point {
+  const s = scale(x)
+  // The foreground side sits to the right, with a lower foot and taller leg.
+  const foreground = 1 - z
+  return [x + foreground * 58 * s, 318 - x * 0.068 - h * s * (1 + foreground * 0.14) + foreground * 10 * s]
 }
 
-function verticalLine(x: number): string {
-  return `M ${x} ${verticalTopY} L ${x} ${verticalBottomY}`
+/** Extend each projected span exactly to the left viewport edge. */
+function spanStart(z = 0): number {
+  const offset = (1 - z) * 58
+  return -offset / (1 - offset * 0.68 / BRIDGE_VIEW.width)
 }
 
-const deckHalfSpan = (deckRightX - deckLeftX) / 2
-const deckCenterX = deckLeftX + deckHalfSpan
-
-/** Y on the shared parabolic deck arch at x (same profile for upper + lower chords). */
-function deckElevationAt(x: number, baseY: number): number {
-  const clampedX = Math.max(deckLeftX, Math.min(deckRightX, x))
-  const t = (clampedX - deckCenterX) / deckHalfSpan
-  return baseY - deckCrown + (deckEndDrop + deckCrown) * t * t
+function line(points: Point[], close = false): string {
+  return points.map(([x, y], i) => `${i ? 'L' : 'M'} ${x.toFixed(2)} ${y.toFixed(2)}`).join(' ') + (close ? ' Z' : '')
 }
 
-type Point2 = { x: number; y: number }
-
-function quadraticYAtX(p0: Point2, p1: Point2, p2: Point2, x: number): number | null {
-  const a = p2.x - 2 * p1.x + p0.x
-  const b = 2 * (p1.x - p0.x)
-  const c = p0.x - x
-
-  const roots: number[] = []
-  if (Math.abs(a) < 1e-9) {
-    if (Math.abs(b) < 1e-9) return null
-    roots.push(-c / b)
-  } else {
-    const disc = b * b - 4 * a * c
-    if (disc < 0) return null
-    const s = Math.sqrt(disc)
-    roots.push((-b - s) / (2 * a), (-b + s) / (2 * a))
-  }
-
-  for (const t of roots) {
-    if (t >= -1e-4 && t <= 1 + 1e-4) {
-      const clamped = Math.max(0, Math.min(1, t))
-      const u = 1 - clamped
-      return u * u * p0.y + 2 * u * clamped * p1.y + clamped * clamped * p2.y
-    }
-  }
-  return null
+function beam(x: number, h: number, width: number, height: number): string {
+  return line([project(x, h, 0), project(x, h, width), project(x, h + height, width), project(x, h + height, 0)], true)
 }
 
-/** Y on the main suspension cable at x (matches topCablePath). */
-function cableElevationAt(x: number): number {
-  const clampedX = Math.max(cableLeftX, Math.min(cableRightX, x))
-  const segments: [Point2, Point2, Point2][] = [
-    [
-      { x: cableLeftX, y: cableAnchorY },
-      { x: leftSideSagX, y: leftSideSagY },
-      { x: leftTowerX, y: towerTopY },
-    ],
-    [
-      { x: leftTowerX, y: towerTopY },
-      { x: cableSagX, y: cableSagY },
-      { x: rightTowerX, y: towerTopY },
-    ],
-    [
-      { x: rightTowerX, y: towerTopY },
-      { x: rightSideSagX, y: rightSideSagY },
-      { x: cableRightX, y: cableAnchorY },
-    ],
-  ]
-
-  for (const [p0, p1, p2] of segments) {
-    const minX = Math.min(p0.x, p2.x)
-    const maxX = Math.max(p0.x, p2.x)
-    if (clampedX < minX - 1e-4 || clampedX > maxX + 1e-4) continue
-    const y = quadraticYAtX(p0, p1, p2, clampedX)
-    if (y !== null) return y
-  }
-
-  return towerTopY
-}
-
-/** Vertical hanger lines from the main cable down to the upper deck chord. */
-const suspenderSpacing = 36
-
-function deckSuspendersPath(): string {
-  const span = deckRightX - deckLeftX
-  const count = Math.max(1, Math.round(span / suspenderSpacing))
+function tower(x: number): string {
   const parts: string[] = []
+  const height = towerHeight(x)
+  // Two portal legs, tapered crown, and three open crossbeam bays.
+  for (const z of [1, 0]) {
+    parts.push(line([
+      project(x - 7, -67, z), project(x - 7, height - 9, z),
+      project(x - 4, height - 9, z), project(x - 4, height, z), project(x, height, z),
+      project(x + 4, height, z), project(x + 4, height - 9, z),
+      project(x + 7, height - 9, z), project(x + 7, -67, z),
+    ], true))
+    parts.push(line([project(x + 1, -67, z), project(x + 1, height - 9, z)]))
 
-  for (let i = 0; i <= count; i++) {
-    const x = deckLeftX + (i / count) * span
-    const cableY = cableElevationAt(x)
-    const deckTopY = deckElevationAt(x, deckY)
-    parts.push(`M ${x} ${cableY} L ${x} ${deckTopY}`)
   }
-
+  for (const h of [65, 139, 211, 276]) parts.push(beam(x, h * height / 292, 1, 9))
   return parts.join(' ')
 }
 
-function deckCurvePath(baseY: number): string {
-  const samples = 48
-  const parts: string[] = []
-  for (let i = 0; i <= samples; i++) {
-    const x = deckLeftX + (i / samples) * (deckRightX - deckLeftX)
-    const y = deckElevationAt(x, baseY)
-    parts.push(i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`)
+/** Parabolic suspension spans, continuous at the tower saddles. */
+function cableHeight(x: number): number {
+  if (x < nearTower) {
+    const t = Math.max(0, x / nearTower)
+    return 5 + (towerHeight(nearTower) - 5) * t * t
   }
-  return parts.join(' ')
+  if (x > farTower) {
+    const t = (1400 - x) / (1400 - farTower)
+    return 5 + (towerHeight(farTower) - 5) * t * t
+  }
+  const t = (x - nearTower) / (farTower - nearTower)
+  return towerHeight(x) - 4 * 215 * t * (1 - t)
 }
 
-/** Warren truss between curved deck chords (upper + lower). */
-function deckTrussPath(): string {
-  const span = trussRightX - trussLeftX
-  const remainder = span % trussPanelWidth
-  const phaseStart =
-    trussLeftX + Math.max(0, remainder / 2 - trussPhaseShiftLeft)
+/** Shared attachment stations make every hanger endpoint a cable vertex. */
+const hangerStations = Array.from({ length: 39 }, (_, i) => {
+  const t = (i + 1) / 40
+  return 1400 * 1.9 * t / (1 + 0.9 * t)
+}).filter(x => Math.abs(x - nearTower) >= 12 && Math.abs(x - farTower) >= 12)
 
-  const topAt = (x: number) => deckElevationAt(x, deckY)
-  const bottomAt = (x: number) => deckElevationAt(x, lowerDeckY)
-
-  const parts = [
-    `M ${trussLeftX} ${topAt(trussLeftX)}`,
-    `L ${trussLeftX} ${bottomAt(trussLeftX)}`,
-  ]
-  let x = phaseStart
-  if (x > trussLeftX) {
-    parts.push(`L ${x} ${topAt(x)}`)
-  }
-  // At the left edge we're on the bottom chord — first step goes up to top.
-  let onTop = x <= trussLeftX
-
-  while (x < trussRightX) {
-    x = Math.min(x + trussPanelWidth, trussRightX)
-    parts.push(`L ${x} ${onTop ? topAt(x) : bottomAt(x)}`)
-    onTop = !onTop
-  }
-
-  parts.push(`L ${trussRightX} ${topAt(trussRightX)}`)
-  return parts.join(' ')
+function cable(z: number): string {
+  const xs = [...new Set([
+    spanStart(z), 0, nearTower, farTower, 1400,
+    ...hangerStations,
+    ...Array.from({ length: 281 }, (_, i) => i * 5),
+  ])].sort((a, b) => a - b)
+  return line(xs.map(x => project(x, cableHeight(x), z)))
 }
 
-const BRIDGE_TOWER_FILLS = {
-  left: towerRect(leftTowerOuterX, leftTowerInnerX),
-  right: towerRect(rightTowerOuterX, rightTowerInnerX),
-} as const
+/** One broad arc across both approaches and the main span.
+ * Compensate for depth so the distant approach retains visible curvature.
+ */
+function deckHeight(x: number): number {
+  const start = spanStart()
+  const t = Math.max(0, Math.min(1, (x - start) / (BRIDGE_VIEW.width - start)))
+  return 18 * 4 * t * (1 - t) / scale(x)
+}
 
-/** Full main cable — left span, center span, and right span as one path. */
-const topCablePath = [
-  `M ${cableLeftX} ${cableAnchorY}`,
-  `Q ${leftSideSagX} ${leftSideSagY} ${leftTowerX} ${towerTopY}`,
-  `Q ${cableSagX} ${cableSagY} ${rightTowerX} ${towerTopY}`,
-  `Q ${rightSideSagX} ${rightSideSagY} ${cableRightX} ${cableAnchorY}`,
-].join(' ')
+const trussStations = Array.from({ length: 101 }, (_, i) => {
+  const t = i / 100
+  return 1400 * 1.9 * t / (1 + 0.9 * t)
+})
 
-/** Bridge strokes rendered and animated in TransitionScene. */
+function deckPoint(x: number, offset = 0, z = 0): Point {
+  return project(x, deckHeight(x) + offset, z)
+}
+
+function deckPath(offset = 0, z = 0): string {
+  const xs = [...new Set([
+    spanStart(z), ...trussStations, ...hangerStations,
+    ...Array.from({ length: 281 }, (_, i) => i * 5),
+  ])].sort((a, b) => a - b)
+  return line(xs.map(x => deckPoint(x, offset, z)))
+}
+
+function hangers(z: number): string {
+  return hangerStations.map(x =>
+    line([deckPoint(x, 0, z), project(x, cableHeight(x), z)]),
+  ).join(' ')
+}
+
+function truss(): string {
+  const points: Point[] = [deckPoint(spanStart(), -3)]
+  trussStations.forEach((x, i) => {
+    points.push(deckPoint(x, i % 2 ? -15 : -3))
+  })
+  return line(points)
+}
+
 export const BRIDGE_PATHS = {
-  deck: deckCurvePath(deckY),
-  lowerTruss: deckCurvePath(lowerDeckY),
-  leftPillar: BRIDGE_TOWER_FILLS.left,
-  deckSuspenders: deckSuspendersPath(),
-  topCable: topCablePath,
-  leftSuspender: verticalLine(leftTowerOuterX),
-  centerSuspender: deckTrussPath(),
-  rightPillar: BRIDGE_TOWER_FILLS.right,
-  rightSuspender: verticalLine(rightTowerInnerX),
+  backCable: cable(1),
+  backHangers: hangers(1),
+  backDeck: deckPath(0, 1),
+  roadway: deckPath(0, 0.48),
+  deck: deckPath(),
+  lowerTruss: deckPath(-3) + ' ' + deckPath(-15),
+  truss: truss(),
+  hangers: hangers(0),
+  farTower: tower(farTower),
+  nearTower: tower(nearTower),
+  topCable: cable(0),
 } as const
 
 export type BridgeStrokeId = keyof typeof BRIDGE_PATHS
-
-export const BRIDGE_TOWER_STROKE_IDS = ['leftPillar', 'rightPillar'] as const
-
-export type StreetLight = {
-  x: number
-  baseY: number
-  headY: number
-}
-
-const streetLightSpacing = 72
-
-/** Lamp posts along the deck — visible in dark mode at full bridge. */
-export const STREET_LIGHTS: StreetLight[] = Array.from(
-  { length: Math.floor(BRIDGE_VIEW.width / streetLightSpacing) - 1 },
-  (_, i) => {
-    const x = streetLightSpacing * (i + 1)
-    const deckAtX = deckElevationAt(x, deckY)
-    return {
-      x,
-      baseY: deckAtX + 2,
-      headY: deckAtX - 14,
-    }
-  },
-)

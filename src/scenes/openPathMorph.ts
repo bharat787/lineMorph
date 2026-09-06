@@ -176,3 +176,22 @@ export function createOpenPathMorph(
     points: pointsAt,
   }
 }
+
+/** Arc-length correspondence supports contours that double back, such as fingers. */
+export function createContourMorph(fromD: string, toD: string, count = 1000): OpenPathMorph {
+  const from = measurePath(fromD)
+  const to = measurePath(toD)
+  const fromLength = from.getTotalLength()
+  const toLength = to.getTotalLength()
+  // The skyline is traced right-to-left; reverse it to follow the hands' left arm first.
+  const source = Array.from({ length: count }, (_, i) => from.getPointAtLength(fromLength * (1 - i / (count - 1))))
+  const target = Array.from({ length: count }, (_, i) => to.getPointAtLength(toLength * i / (count - 1)))
+  const points = (t: number): [number, number][] => {
+    const p = smoothstep(t)
+    return source.map((a, i) => [a.x + (target[i].x - a.x) * p, a.y + (target[i].y - a.y) * p])
+  }
+  return {
+    points,
+    path: t => t <= 0 ? fromD : t >= 1 ? toD : openPathFromPoints(points(t)),
+  }
+}

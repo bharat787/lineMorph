@@ -1,47 +1,19 @@
-import type { BridgeStrokeId } from './bridgeGeometry'
+import { BRIDGE_PATHS, type BridgeStrokeId } from './bridgeGeometry'
 
 /** Full top suspension cable morphs into the skyline outline. */
 export const SKYLINE_MORPH_STROKE: BridgeStrokeId = 'topCable'
 
-/** Deck + truss fade out before the morph. */
-export const BRIDGE_FADE_STROKES: BridgeStrokeId[] = [
-  'deck',
-  'lowerTruss',
-  'centerSuspender',
-]
+/** All other bridge strokes fade out before the morph. */
+export const BRIDGE_FADE_STROKES = (Object.keys(BRIDGE_PATHS) as BridgeStrokeId[])
+  .filter(id => id !== SKYLINE_MORPH_STROKE)
 
-/** Towers and their hanger lines — same fade band as the pillar style morph. */
-export const BRIDGE_TOWER_FADE_STROKES: BridgeStrokeId[] = [
-  'leftPillar',
-  'rightPillar',
-  'deckSuspenders',
-  'leftSuspender',
-  'rightSuspender',
-]
-
-/** SVG paint order (truss between deck lines, cable on top). */
-export const BRIDGE_RENDER_ORDER: BridgeStrokeId[] = [
-  'deck',
-  'lowerTruss',
-  'centerSuspender',
-  'deckSuspenders',
-  'topCable',
-  'leftPillar',
-  'rightPillar',
-  'leftSuspender',
-  'rightSuspender',
-]
+/** Far structure first, foreground towers and continuous cable last. */
+export const BRIDGE_RENDER_ORDER = Object.keys(BRIDGE_PATHS) as BridgeStrokeId[]
 
 /** Finer steps keep the morphed skyline ridge close to the traced outline. */
 export const MORPH_SEGMENT_LENGTH = 4
 
-export const SCROLL_END = '+=340%'
-
-/** Scroll progress bands where the scene is fully bridge or fully skyline. */
-export const STABLE_PROGRESS = {
-  bridgeMax: 0.05,
-  skylineMin: 0.94,
-} as const
+export const SCROLL_END = '+=850%'
 
 /** Timeline segment lengths (sum ≈ 1). */
 export const MORPH_TIMING = {
@@ -52,9 +24,9 @@ export const MORPH_TIMING = {
   morphDuration: 0.52,
   detailFadeStart: 0.86,
   detailFadeDuration: 0.16,
+  /** All landmark details draw together over the same scroll interval. */
   detailDrawStart: 0.88,
   detailDrawDuration: 0.22,
-  detailStagger: 0.04,
 } as const
 
 /** Denser samples + smaller Bayer cells = more dots along the morph. */

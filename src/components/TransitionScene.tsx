@@ -1,25 +1,21 @@
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import {
   BRIDGE_PATHS,
-  BRIDGE_TOWER_STROKE_IDS,
   BRIDGE_VIEW,
-  STREET_LIGHTS,
   type BridgeStrokeId,
 } from '../scenes/bridgeGeometry'
 import { clearStipple, renderStipple } from '../dither/stipplePath'
-import { createOpenPathMorph, samplePathByX } from '../scenes/openPathMorph'
+import { createOpenPathMorph, createContourMorph, samplePathByX } from '../scenes/openPathMorph'
 import {
   SKYLINE_MORPH_TARGET,
   SKYLINE_REVEAL_PATHS,
-  WINDOW_LIGHTS,
 } from '../scenes/skylineOutline'
 import {
   BRIDGE_FADE_STROKES,
   BRIDGE_RENDER_ORDER,
-  BRIDGE_TOWER_FADE_STROKES,
   DITHER_TIMING,
   MORPH_SEGMENT_LENGTH,
   STIPPLE_CELL_SIZE,
@@ -28,9 +24,8 @@ import {
   MORPH_TIMING,
   SCROLL_END,
   SKYLINE_MORPH_STROKE,
-  STABLE_PROGRESS,
 } from '../scenes/morphPlan'
-import { useTheme, type Theme } from '../hooks/useTheme'
+import { WAVING_HAND_OUTLINE, WAVING_HAND_DETAILS } from '../scenes/wavingHandGeometry'
 import './TransitionScene.css'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
@@ -44,55 +39,19 @@ function prepDraw(path: SVGPathElement) {
 }
 
 function emptyMorphRefs(): Record<BridgeStrokeId, SVGPathElement | null> {
-  return {
-    deck: null,
-    lowerTruss: null,
-    leftPillar: null,
-    deckSuspenders: null,
-    topCable: null,
-    leftSuspender: null,
-    centerSuspender: null,
-    rightPillar: null,
-    rightSuspender: null,
-  }
-}
-
-function sceneInk(): string {
-  return (
-    getComputedStyle(document.documentElement).getPropertyValue('--scene-ink').trim() ||
-    '#e05b35'
-  )
-}
-
-function lightTargets(progress: number, theme: Theme) {
-  if (theme === 'light') {
-    return { street: 0, window: 0 }
-  }
-
-  const bridgeStable = progress <= STABLE_PROGRESS.bridgeMax
-  const skylineStable = progress >= STABLE_PROGRESS.skylineMin
-
-  return {
-    street: bridgeStable ? 1 : 0,
-    window: skylineStable ? 1 : 0,
-  }
+  return Object.fromEntries(
+    BRIDGE_RENDER_ORDER.map(id => [id, null]),
+  ) as Record<BridgeStrokeId, SVGPathElement | null>
 }
 
 export function TransitionScene() {
-  const { theme, toggleTheme } = useTheme()
   const sectionRef = useRef<HTMLElement>(null)
   const pinRef = useRef<HTMLDivElement>(null)
   const morphRefs = useRef(emptyMorphRefs())
   const stippleRef = useRef<SVGGElement>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
+  const handsRef = useRef<SVGGElement>(null)
   const revealRef = useRef<SVGGElement>(null)
-  const streetLightsRef = useRef<SVGGElement>(null)
-  const windowLightsRef = useRef<SVGGElement>(null)
-  const scrollProgressRef = useRef(0)
-  const themeRef = useRef(theme)
-
-  useEffect(() => {
-    themeRef.current = theme
-  }, [theme])
 
   useGSAP(
     () => {
@@ -100,47 +59,32 @@ export function TransitionScene() {
         '(prefers-reduced-motion: reduce)',
       ).matches
 
-      const towerEls = BRIDGE_TOWER_STROKE_IDS.map((id) => morphRefs.current[id]).filter(
-        Boolean,
-      ) as SVGPathElement[]
-      const towerFadeEls = BRIDGE_TOWER_FADE_STROKES.map((id) => morphRefs.current[id]).filter(
-        Boolean,
-      ) as SVGPathElement[]
       const fadeEls = BRIDGE_FADE_STROKES.map((id) => morphRefs.current[id]).filter(
         Boolean,
       ) as SVGPathElement[]
       const skylineEl = morphRefs.current[SKYLINE_MORPH_STROKE]
       const stippleEl = stippleRef.current
       const cablePath = BRIDGE_PATHS[SKYLINE_MORPH_STROKE]
-      const streetLightsEl = streetLightsRef.current
-      const windowLightsEl = windowLightsRef.current
-      const ink = sceneInk()
-
-      const applyLights = (progress: number, animate: boolean) => {
-        const { street, window } = lightTargets(progress, themeRef.current)
-        const duration = animate ? 0.5 : 0.12
-
-        if (streetLightsEl) {
-          gsap.to(streetLightsEl, { opacity: street, duration, overwrite: true })
-        }
-        if (windowLightsEl) {
-          gsap.to(windowLightsEl, { opacity: window, duration, overwrite: true })
-        }
-      }
+      // GSAP mutates d directly; restore the current geometry on every setup.
+      skylineEl?.setAttribute('d', cablePath)
 
       if (reducedMotion) {
-        gsap.set(towerEls, { fill: 'none', stroke: ink })
-        gsap.set(towerFadeEls, { opacity: 0 })
-        gsap.set(fadeEls, { opacity: 0 })
-        gsap.set(stippleEl, { opacity: 0 })
-        gsap.set(skylineEl, { opacity: 1 })
-        skylineEl?.setAttribute('d', SKYLINE_MORPH_TARGET)
-        gsap.set(revealRef.current, { opacity: 1 })
-        revealRef.current?.querySelectorAll('path').forEach((p) => {
-          gsap.set(p, { attr: { 'stroke-dashoffset': 0 } })
+        const showStage = (progress: number) => {
+          const stage = progress < 0.33 ? 0 : progress < 0.67 ? 1 : 2
+          gsap.set(fadeEls, { opacity: stage === 0 ? 1 : 0 })
+          gsap.set(stippleEl, { opacity: 0 })
+          gsap.set(skylineEl, { opacity: 1 })
+          skylineEl?.setAttribute('d', stage === 0 ? cablePath : stage === 1 ? SKYLINE_MORPH_TARGET : WAVING_HAND_OUTLINE)
+          gsap.set(revealRef.current, { opacity: stage === 1 ? 1 : 0 })
+          gsap.set(handsRef.current, { opacity: stage === 2 ? 1 : 0 })
+          gsap.set(svgRef.current, { y: 0 })
+        }
+        showStage(0)
+        ScrollTrigger.create({
+          trigger: sectionRef.current, start: 'top top', end: SCROLL_END,
+          pin: pinRef.current, onUpdate: self => showStage(self.progress),
+          onRefresh: self => showStage(self.progress),
         })
-        scrollProgressRef.current = 1
-        applyLights(1, false)
         return
       }
 
@@ -148,10 +92,12 @@ export function TransitionScene() {
         '.transition-reveal__path',
         revealRef.current,
       )
+      const handDetails = gsap.utils.toArray<SVGPathElement>('path', handsRef.current)
+      gsap.set(handDetails, { attr: { 'stroke-dasharray': 1, 'stroke-dashoffset': 1 } })
+      gsap.set(handsRef.current, { opacity: 0 })
+      gsap.set(svgRef.current, { y: 0 })
       detailPaths.forEach(prepDraw)
       gsap.set(revealRef.current, { opacity: 0 })
-      gsap.set(streetLightsEl, { opacity: 0 })
-      gsap.set(windowLightsEl, { opacity: 0 })
 
       const tl = gsap.timeline({ defaults: { ease: 'none' } })
       const {
@@ -163,22 +109,8 @@ export function TransitionScene() {
         detailFadeDuration,
         detailDrawStart,
         detailDrawDuration,
-        detailStagger,
       } = MORPH_TIMING
 
-      const towerBridgeStyle = { fill: ink, stroke: 'none' }
-      const towerSkylineStyle = { fill: 'none', stroke: ink }
-
-      gsap.set(towerEls, towerBridgeStyle)
-      tl.set(towerEls, towerBridgeStyle, 0)
-
-      tl.to(
-        towerEls,
-        { ...towerSkylineStyle, duration: 0.08 },
-        fadeStart,
-      )
-
-      tl.to(towerFadeEls, { opacity: 0, duration: fadeDuration }, fadeStart)
       tl.to(fadeEls, { opacity: 0, duration: fadeDuration }, fadeStart)
 
       if (skylineEl && stippleEl) {
@@ -204,7 +136,19 @@ export function TransitionScene() {
         gsap.set(stippleEl, { opacity: 0 })
         clearStipple(stippleEl)
 
+        const handsMorph = createContourMorph(SKYLINE_MORPH_TARGET, WAVING_HAND_OUTLINE)
+        const handsState = { t: 0, mix: 0, crisp: 0 }
         const syncCableVisual = () => {
+          if (handsState.mix > 0) {
+            skylineEl.setAttribute('d', handsMorph.path(handsState.t))
+            renderStipple(stippleEl, handsMorph.points(handsState.t), {
+              threshold: 0.7 + handsState.t * 0.28,
+              cellSize: STIPPLE_CELL_SIZE, dotRadius: STIPPLE_DOT_RADIUS,
+            })
+            gsap.set(skylineEl, { opacity: 1 - handsState.mix + handsState.mix * handsState.crisp })
+            gsap.set(stippleEl, { opacity: handsState.mix * (1 - handsState.crisp) })
+            return
+          }
           const inStipplePhase = ditherState.stippleMix > 0.001
 
           if (inStipplePhase) {
@@ -215,8 +159,9 @@ export function TransitionScene() {
               cellSize: STIPPLE_CELL_SIZE,
               dotRadius: STIPPLE_DOT_RADIUS,
             })
-            skylineEl.setAttribute('d', morph.path(morphState.t))
+            skylineEl.setAttribute('d', morphState.t >= 1 ? SKYLINE_MORPH_TARGET : morph.path(morphState.t))
           } else {
+            skylineEl.setAttribute('d', cablePath)
             clearStipple(stippleEl)
           }
 
@@ -234,7 +179,6 @@ export function TransitionScene() {
             stippleMix: 1,
             crisp: 0,
             duration: DITHER_TIMING.stippleInDuration,
-            onUpdate: syncCableVisual,
           },
           DITHER_TIMING.stippleInStart,
         )
@@ -244,7 +188,6 @@ export function TransitionScene() {
           {
             threshold: DITHER_TIMING.thresholdEnd,
             duration: morphDuration,
-            onUpdate: syncCableVisual,
           },
           morphStart,
         )
@@ -254,7 +197,6 @@ export function TransitionScene() {
           {
             t: 1,
             duration: morphDuration,
-            onUpdate: syncCableVisual,
           },
           morphStart,
         )
@@ -264,10 +206,15 @@ export function TransitionScene() {
           {
             crisp: 1,
             duration: DITHER_TIMING.crispDuration,
-            onUpdate: syncCableVisual,
           },
           DITHER_TIMING.crispStart,
         )
+        // A hold on the finished skyline separates the second and third artworks.
+        tl.to(handsState, { mix: 1, duration: 0.08 }, 1.65)
+        tl.to(handsState, { t: 1, duration: 0.65 }, 1.69)
+        tl.to(handsState, { crisp: 1, duration: 0.12 }, 2.28)
+        // One renderer owns d/opacity, including during reverse scrubbing.
+        tl.eventCallback('onUpdate', syncCableVisual)
       }
 
       tl.to(
@@ -281,12 +228,18 @@ export function TransitionScene() {
         {
           attr: { 'stroke-dashoffset': 0 },
           duration: detailDrawDuration,
-          stagger: detailStagger,
         },
         detailDrawStart,
       )
 
+      tl.to(revealRef.current, { opacity: 0, duration: 0.18 }, 1.43)
+      tl.to(handsRef.current, { opacity: 1, duration: 0.18 }, 2.34)
+      tl.to(handDetails, { attr: { 'stroke-dashoffset': 0 }, duration: 0.23 }, 2.34)
+      // Final hold lets the hands settle before the pin ends.
+      tl.to({}, { duration: 0.25 }, 2.57)
+
       ScrollTrigger.create({
+        invalidateOnRefresh: true,
         trigger: sectionRef.current,
         start: 'top top',
         end: SCROLL_END,
@@ -294,86 +247,23 @@ export function TransitionScene() {
         scrub: 1,
         animation: tl,
         anticipatePin: 1,
-        onUpdate: (self) => {
-          scrollProgressRef.current = self.progress
-          applyLights(self.progress, false)
-        },
       })
 
-      applyLights(0, false)
     },
-    { scope: sectionRef },
+    { scope: sectionRef, dependencies: [BRIDGE_PATHS, SKYLINE_MORPH_TARGET, SKYLINE_REVEAL_PATHS, WAVING_HAND_OUTLINE], revertOnUpdate: true },
   )
-
-  useEffect(() => {
-    const progress = scrollProgressRef.current
-    const { street, window } = lightTargets(progress, theme)
-    const duration = 0.5
-
-    if (streetLightsRef.current) {
-      gsap.to(streetLightsRef.current, { opacity: street, duration, overwrite: true })
-    }
-    if (windowLightsRef.current) {
-      gsap.to(windowLightsRef.current, { opacity: window, duration, overwrite: true })
-    }
-  }, [theme])
 
   return (
     <section ref={sectionRef} className="transition-scene">
-      <button
-        type="button"
-        className="transition-scene__toggle"
-        onClick={toggleTheme}
-        aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-      >
-        {theme === 'light' ? 'Dark mode' : 'Light mode'}
-      </button>
       <div ref={pinRef} className="transition-scene__pin">
         <svg
+          ref={svgRef}
           className="transition-scene__svg"
           viewBox={`0 0 ${BRIDGE_VIEW.width} ${BRIDGE_VIEW.height}`}
           preserveAspectRatio="xMidYMax meet"
           role="img"
-          aria-label="Suspension bridge transforming into the San Francisco skyline"
+          aria-label="Golden Gate Bridge transforming into San Francisco landmarks and then a waving hand"
         >
-          <rect
-            className="transition-scene__bg"
-            x={0}
-            y={0}
-            width={BRIDGE_VIEW.width}
-            height={BRIDGE_VIEW.height}
-          />
-          <g
-            ref={streetLightsRef}
-            className="transition-scene__streetlights"
-            opacity={0}
-            aria-hidden="true"
-          >
-            {STREET_LIGHTS.map((lamp, i) => (
-              <g key={i}>
-                <line
-                  className="transition-scene__streetlight-post"
-                  x1={lamp.x}
-                  y1={lamp.baseY}
-                  x2={lamp.x}
-                  y2={lamp.headY}
-                />
-                <circle
-                  className="transition-scene__streetlight-bulb"
-                  cx={lamp.x}
-                  cy={lamp.headY}
-                  r={3}
-                />
-                <ellipse
-                  className="transition-scene__streetlight-pool"
-                  cx={lamp.x}
-                  cy={lamp.baseY + 1}
-                  rx={9}
-                  ry={2.5}
-                />
-              </g>
-            ))}
-          </g>
           <g className="transition-scene__morph">
             {BRIDGE_RENDER_ORDER.map((id) => (
               <path
@@ -405,25 +295,13 @@ export function TransitionScene() {
               />
             ))}
           </g>
-          <g
-            ref={windowLightsRef}
-            className="transition-scene__windows"
-            opacity={0}
-            aria-hidden="true"
-          >
-            {WINDOW_LIGHTS.map((win, i) => (
-              <rect
-                key={i}
-                className="transition-scene__window"
-                x={win.x - win.w / 2}
-                y={win.y}
-                width={win.w}
-                height={win.h}
-                rx={0.6}
-              />
+          <g ref={handsRef} opacity={0}>
+            {WAVING_HAND_DETAILS.map((d, i) => (
+              <path key={i} d={d} pathLength={1} className="transition-scene__stroke transition-reveal__path" />
             ))}
           </g>
         </svg>
+
       </div>
     </section>
   )
