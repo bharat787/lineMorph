@@ -41,7 +41,6 @@ function tower(x: number): string {
       project(x + 7, height - 9, z), project(x + 7, -67, z),
     ], true))
     parts.push(line([project(x + 1, -67, z), project(x + 1, height - 9, z)]))
-
   }
   for (const h of [65, 139, 211, 276]) parts.push(beam(x, h * height / 292, 1, 9))
   return parts.join(' ')
