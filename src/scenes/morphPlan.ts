@@ -13,7 +13,7 @@ export const BRIDGE_RENDER_ORDER = Object.keys(BRIDGE_PATHS) as BridgeStrokeId[]
 /** Finer steps keep the morphed skyline ridge close to the traced outline. */
 export const MORPH_SEGMENT_LENGTH = 4
 
-export const SCROLL_END = '+=340%'
+export const SCROLL_END = '+=850%'
 
 /** Timeline segment lengths (sum ≈ 1). */
 export const MORPH_TIMING = {
