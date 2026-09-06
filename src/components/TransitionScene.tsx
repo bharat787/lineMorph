@@ -25,7 +25,7 @@ import {
   SCROLL_END,
   SKYLINE_MORPH_STROKE,
 } from '../scenes/morphPlan'
-import { HANDS_OUTLINE, HANDS_DETAILS } from '../scenes/handsGeometry'
+import { NOKIA_HANDS_OUTLINE, NOKIA_HANDS_DETAILS } from '../scenes/nokiaHandsGeometry'
 import './TransitionScene.css'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
@@ -74,7 +74,7 @@ export function TransitionScene() {
           gsap.set(fadeEls, { opacity: stage === 0 ? 1 : 0 })
           gsap.set(stippleEl, { opacity: 0 })
           gsap.set(skylineEl, { opacity: 1 })
-          skylineEl?.setAttribute('d', stage === 0 ? cablePath : stage === 1 ? SKYLINE_MORPH_TARGET : HANDS_OUTLINE)
+          skylineEl?.setAttribute('d', stage === 0 ? cablePath : stage === 1 ? SKYLINE_MORPH_TARGET : NOKIA_HANDS_OUTLINE)
           gsap.set(revealRef.current, { opacity: stage === 1 ? 1 : 0 })
           gsap.set(handsRef.current, { opacity: stage === 2 ? 1 : 0 })
           gsap.set(svgRef.current, { y: 0 })
@@ -93,7 +93,7 @@ export function TransitionScene() {
         revealRef.current,
       )
       const handDetails = gsap.utils.toArray<SVGPathElement>('path', handsRef.current)
-      handDetails.forEach(prepDraw)
+      gsap.set(handDetails, { attr: { 'stroke-dasharray': 1, 'stroke-dashoffset': 1 } })
       gsap.set(handsRef.current, { opacity: 0 })
       gsap.set(svgRef.current, { y: 0 })
       detailPaths.forEach(prepDraw)
@@ -136,7 +136,7 @@ export function TransitionScene() {
         gsap.set(stippleEl, { opacity: 0 })
         clearStipple(stippleEl)
 
-        const handsMorph = createContourMorph(SKYLINE_MORPH_TARGET, HANDS_OUTLINE)
+        const handsMorph = createContourMorph(SKYLINE_MORPH_TARGET, NOKIA_HANDS_OUTLINE)
         const handsState = { t: 0, mix: 0, crisp: 0 }
         const syncCableVisual = () => {
           if (handsState.mix > 0) {
@@ -248,8 +248,9 @@ export function TransitionScene() {
         animation: tl,
         anticipatePin: 1,
       })
+
     },
-    { scope: sectionRef, dependencies: [BRIDGE_PATHS, SKYLINE_MORPH_TARGET, SKYLINE_REVEAL_PATHS, HANDS_OUTLINE], revertOnUpdate: true },
+    { scope: sectionRef, dependencies: [BRIDGE_PATHS, SKYLINE_MORPH_TARGET, SKYLINE_REVEAL_PATHS, NOKIA_HANDS_OUTLINE], revertOnUpdate: true },
   )
 
   return (
@@ -295,11 +296,12 @@ export function TransitionScene() {
             ))}
           </g>
           <g ref={handsRef} opacity={0}>
-            {HANDS_DETAILS.map((d, i) => (
-              <path key={i} d={d} className="transition-scene__stroke transition-reveal__path" />
+            {NOKIA_HANDS_DETAILS.map((d, i) => (
+              <path key={i} d={d} pathLength={1} className="transition-scene__stroke transition-reveal__path" />
             ))}
           </g>
         </svg>
+
       </div>
     </section>
   )

@@ -1,6 +1,6 @@
 # lineMorph — V2
 
-Run `npm run dev` and open the local Vite URL. Scroll down to dissolve the bridge details, morph its continuous foreground suspension cable through stippled dots, and reveal the San Francisco skyline. Continue scrolling to morph the skyline into a small reaching-hands drawing near the bottom inspired by Michelangelo’s Creation of Adam. Scroll back up to restore the skyline and bridge.
+Run `npm run dev` and open the local Vite URL. Scroll down to dissolve the bridge details, morph its continuous foreground suspension cable through stippled dots, and reveal the San Francisco skyline. Continue scrolling to morph the skyline into a small reaching-hands drawing near the bottom inspired by Nokia’s Connecting People image. Scroll back up to restore the skyline and bridge.
 
 ## Angled bridge study
 
@@ -16,7 +16,7 @@ References: [Library of Congress Ferry Building photograph](https://www.loc.gov/
 
 ### Reaching hands
 
-`src/scenes/handsGeometry.ts` defines the third artwork as original orange contours inspired by Michelangelo’s Creation of Adam, with curled fingers, knuckle details, and a narrow gap between the index fingertips. After a skyline hold, the outline morphs through stippled dots into small hands near the bottom, with one horizontal line extending from each viewport edge into the hands. An arc-length morph in `openPathMorph.ts` allows the contour to double back around fingers. Reduced-motion mode switches between all three artworks without interpolation. The shared timeline supports reverse scrolling.
+`src/scenes/nokiaHandsGeometry.ts` defines the chosen third artwork: a cupped adult palm and smaller reaching hand, with the adult hand reduced by 32% around its fingertip. Both edge lines remain level. The outline morphs through stippled dots near the bottom of the viewport. Reduced-motion mode switches between all three artworks without interpolation. The shared timeline supports reverse scrolling. The earlier Michelangelo study remains in `handsGeometry.ts` for reference.
 
 Validation: `npm run build` and `npm run lint`.
 
