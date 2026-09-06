@@ -1,5 +1,5 @@
 import { BRIDGE_VIEW } from './bridgeGeometry'
-import { FERRY_OUTLINE, PALACE_OUTLINE, FERRY_CLOCK, FERRY_DETAILS, PALACE_DETAILS, TRANSAMERICA_DETAILS, TRANSAMERICA_RIGHT_OUTLINE, TRANSAMERICA_LEFT_OUTLINE, SALESFORCE_DETAILS } from './skylineLandmarks'
+import { FERRY_OUTLINE, PALACE_OUTLINE, FERRY_CLOCK, FERRY_DETAILS, PALACE_DETAILS, TRANSAMERICA_DETAILS, TRANSAMERICA_RIGHT_OUTLINE, TRANSAMERICA_LEFT_OUTLINE, SALESFORCE_DETAILS, COIT_OUTLINE, COIT_DETAILS } from './skylineLandmarks'
 
 /** Skyline baseline — sits just above the bridge deck so spires can use more height above. */
 export const SKYLINE_GROUND_Y = 238
@@ -130,6 +130,7 @@ function replaceLandmark(d: string, start: string, end: string, outline: string)
 let landmarkProfile: string = RAW_PATHS[0]
 landmarkProfile = replaceLandmark(landmarkProfile, ' C873.965759', ' C483.005554', FERRY_OUTLINE)
 landmarkProfile = replaceLandmark(landmarkProfile, ' C1212.958618', ' C1021.498413', PALACE_OUTLINE)
+landmarkProfile = replaceLandmark(landmarkProfile, ' C1021.498413', ' L860 682', COIT_OUTLINE)
 // The original pyramid crosses two source paths; rebuild both sides around x=361.
 const pyramidRightStart = landmarkProfile.indexOf(' C418.336945')
 const pyramidLeftEnd = RAW_PATHS[1].indexOf(' C298.344757')
@@ -172,4 +173,5 @@ export const SKYLINE_REVEAL_PATHS = [
   transformPath(PALACE_DETAILS.join(' ')),
   transformPath(TRANSAMERICA_DETAILS.join(' ')),
   transformPath(SALESFORCE_DETAILS.join(' ')),
+  transformPath(COIT_DETAILS.join(' ')),
 ]

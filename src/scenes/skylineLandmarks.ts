@@ -108,3 +108,35 @@ export const SALESFORCE_DETAILS = [
   ),
   'M1463 248 Q1488 255 1513 248 M1448 681 L1527 681',
 ]
+
+/** Coit Tower: centered between Ferry's right wing and the Palace colonnade.
+ * References: https://www.sfrecpark.org/Facilities/Facility/Details/Coit-Tower-290
+ * https://www.ronhenggeler.com/on_the_walls/6717.htm
+ */
+const coitCenter = (860 + 1021.5) / 2
+const coitX = (offset: number) => coitCenter + offset
+
+export const COIT_OUTLINE = [
+  `L${coitX(40)} 682 L${coitX(40)} 649 L${coitX(28)} 641`,
+  `L${coitX(23)} 472 L${coitX(29)} 453 L${coitX(29)} 383`,
+  `Q${coitCenter} 372 ${coitX(-29)} 383`,
+  `L${coitX(-29)} 453 L${coitX(-23)} 472 L${coitX(-28)} 641`,
+  `L${coitX(-40)} 649 L${coitX(-40)} 682`,
+].join(' ')
+
+export const COIT_DETAILS = [
+  // Curved parapet and observation-gallery cornices.
+  `M${coitX(-29)} 393 Q${coitCenter} 385 ${coitX(29)} 393 M${coitX(-29)} 454 Q${coitCenter} 460 ${coitX(29)} 454 M${coitX(-23)} 472 Q${coitCenter} 477 ${coitX(23)} 472`,
+  ...[-22, -6, 14].map((offset, i) => {
+    const width = i === 1 ? 12 : 8
+    const x = coitX(offset)
+    return arch(x, 449, width, 416, 17) + ` L${x} 449`
+  }),
+  // Small windows beneath the open arches, and long recessed vertical flutes.
+  ...[-16, 0, 16].map(offset => {
+    const x = coitX(offset)
+    return `M${x - 3} 484 L${x + 3} 484 L${x + 3} 494 L${x - 3} 494 L${x - 3} 484 M${x - 3} 509 L${x - 4} 633 M${x + 3} 509 L${x + 4} 633`
+  }),
+  `M${coitX(-28)} 641 Q${coitCenter} 649 ${coitX(28)} 641 M${coitX(-40)} 655 L${coitX(40)} 655 M${coitX(-40)} 682 L${coitX(40)} 682`,
+  arch(coitX(-7), 682, 14, 665, 9),
+]
