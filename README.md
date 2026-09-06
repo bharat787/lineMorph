@@ -1,6 +1,6 @@
 # lineMorph — V2
 
-Run `npm run dev` and open the local Vite URL. Scroll down to dissolve the bridge details, morph its continuous foreground suspension cable through stippled dots, and reveal the San Francisco skyline. Continue scrolling to morph the skyline into a small reaching-hands drawing near the bottom inspired by Nokia’s Connecting People image. Scroll back up to restore the skyline and bridge.
+Run `npm run dev` and open the local Vite URL. Scroll down to dissolve the bridge details, morph its continuous foreground suspension cable through stippled dots, and reveal the San Francisco skyline. Continue scrolling to morph the skyline into a small waving hand drawing near the bottom. Scroll back up to restore the skyline and bridge.
 
 ## Angled bridge study
 
@@ -16,7 +16,7 @@ References: [Library of Congress Ferry Building photograph](https://www.loc.gov/
 
 ### Reaching hands
 
-`src/scenes/nokiaHandsGeometry.ts` defines the chosen third artwork: a cupped adult palm and smaller reaching hand, with the adult hand reduced by 32% around its fingertip. Both edge lines remain level. The outline morphs through stippled dots near the bottom of the viewport. Reduced-motion mode switches between all three artworks without interpolation. The shared timeline supports reverse scrolling. The earlier Michelangelo study remains in `handsGeometry.ts` for reference.
+`src/scenes/wavingHandGeometry.ts` defines the current third artwork: a simple open palm saying hi, with level lines extending from the midpoint of the palm to the viewport edges. The lower palm contour, finger creases, and wave marks draw in after the stippled morph. Reduced-motion mode switches between all three artworks without interpolation. Earlier handshake, Nokia and Michelangelo studies remain in their geometry files for comparison in future edits.
 
 Validation: `npm run build` and `npm run lint`.
 

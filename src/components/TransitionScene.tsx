@@ -25,7 +25,7 @@ import {
   SCROLL_END,
   SKYLINE_MORPH_STROKE,
 } from '../scenes/morphPlan'
-import { NOKIA_HANDS_OUTLINE, NOKIA_HANDS_DETAILS } from '../scenes/nokiaHandsGeometry'
+import { WAVING_HAND_OUTLINE, WAVING_HAND_DETAILS } from '../scenes/wavingHandGeometry'
 import './TransitionScene.css'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
@@ -74,7 +74,7 @@ export function TransitionScene() {
           gsap.set(fadeEls, { opacity: stage === 0 ? 1 : 0 })
           gsap.set(stippleEl, { opacity: 0 })
           gsap.set(skylineEl, { opacity: 1 })
-          skylineEl?.setAttribute('d', stage === 0 ? cablePath : stage === 1 ? SKYLINE_MORPH_TARGET : NOKIA_HANDS_OUTLINE)
+          skylineEl?.setAttribute('d', stage === 0 ? cablePath : stage === 1 ? SKYLINE_MORPH_TARGET : WAVING_HAND_OUTLINE)
           gsap.set(revealRef.current, { opacity: stage === 1 ? 1 : 0 })
           gsap.set(handsRef.current, { opacity: stage === 2 ? 1 : 0 })
           gsap.set(svgRef.current, { y: 0 })
@@ -136,7 +136,7 @@ export function TransitionScene() {
         gsap.set(stippleEl, { opacity: 0 })
         clearStipple(stippleEl)
 
-        const handsMorph = createContourMorph(SKYLINE_MORPH_TARGET, NOKIA_HANDS_OUTLINE)
+        const handsMorph = createContourMorph(SKYLINE_MORPH_TARGET, WAVING_HAND_OUTLINE)
         const handsState = { t: 0, mix: 0, crisp: 0 }
         const syncCableVisual = () => {
           if (handsState.mix > 0) {
@@ -250,7 +250,7 @@ export function TransitionScene() {
       })
 
     },
-    { scope: sectionRef, dependencies: [BRIDGE_PATHS, SKYLINE_MORPH_TARGET, SKYLINE_REVEAL_PATHS, NOKIA_HANDS_OUTLINE], revertOnUpdate: true },
+    { scope: sectionRef, dependencies: [BRIDGE_PATHS, SKYLINE_MORPH_TARGET, SKYLINE_REVEAL_PATHS, WAVING_HAND_OUTLINE], revertOnUpdate: true },
   )
 
   return (
@@ -262,7 +262,7 @@ export function TransitionScene() {
           viewBox={`0 0 ${BRIDGE_VIEW.width} ${BRIDGE_VIEW.height}`}
           preserveAspectRatio="xMidYMax meet"
           role="img"
-          aria-label="Golden Gate Bridge transforming into San Francisco landmarks and then two reaching hands"
+          aria-label="Golden Gate Bridge transforming into San Francisco landmarks and then a waving hand"
         >
           <g className="transition-scene__morph">
             {BRIDGE_RENDER_ORDER.map((id) => (
@@ -296,7 +296,7 @@ export function TransitionScene() {
             ))}
           </g>
           <g ref={handsRef} opacity={0}>
-            {NOKIA_HANDS_DETAILS.map((d, i) => (
+            {WAVING_HAND_DETAILS.map((d, i) => (
               <path key={i} d={d} pathLength={1} className="transition-scene__stroke transition-reveal__path" />
             ))}
           </g>
